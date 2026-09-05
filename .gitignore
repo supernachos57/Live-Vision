@@ -1,0 +1,13 @@
+# Build output
+build/
+out/
+
+# Compiled binaries
+*.exe
+*.obj
+*.o
+*.pdb
+*.ilk
+
+# Editor
+.vscode/
