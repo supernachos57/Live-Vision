@@ -19,7 +19,7 @@ Status recorded September 6, 2026. Phase 1 is complete; Phase 2 is next. The ML 
 
 **Career fair: October 1, 2026.** Target a working Phase 1–8 MVP by September 25, with essential Phase 10 documentation, recording, and release verification finished by September 30. Phase 9 is planned after the fair. Additional polish can continue afterward; future work is not marked in progress until started.
 
-The library-focused [roadmap](docs/roadmap.md) takes precedence over the earlier handwritten Matrix/backpropagation plan. [Schedule and milestones](docs/project-plan.md) · [Architecture and timeline](docs/architecture.md) · [Issues](https://github.com/supernachos57/Live-Vision/issues) · [Milestones](https://github.com/supernachos57/Live-Vision/milestones) · [Repository Projects](https://github.com/supernachos57/Live-Vision/projects)
+The library-focused [roadmap](roadmap.md) takes precedence over the earlier handwritten Matrix/backpropagation plan. [Schedule and milestones](project-plan.md) · [Architecture and timeline](architecture.md) · [Issues](https://github.com/supernachos57/Live-Vision/issues) · [Milestones](https://github.com/supernachos57/Live-Vision/milestones) · [Repository Projects](https://github.com/supernachos57/Live-Vision/projects)
 
 ## Intended architecture
 
