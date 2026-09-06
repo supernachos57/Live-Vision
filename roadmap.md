@@ -2,7 +2,7 @@
 
 **Career-fair deadline: October 1, 2026**  
 **Current status: Phase 1 complete; Phases 2–10 planned**  
-**ML-library decision: deferred until tomorrow's session**
+**ML-library decision: deferred until the next decision session (Phase 2)**
 
 ## Project goal
 
