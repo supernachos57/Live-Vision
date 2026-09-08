@@ -11,3 +11,5 @@ out/
 
 # Editor
 .vscode/
+
+/build-msvc/
