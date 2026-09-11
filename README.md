@@ -4,11 +4,11 @@ A learning-focused C++ project to classify grocery items from images and, eventu
 
 ## Project Status
 
-Status recorded September 6, 2026. Phase 1 is complete; Phase 2 is next. The ML library remains undecided. There is no working ML model or webcam pipeline yet. The diagrams below describe the intended design.
+Status recorded September 11, 2026. Phases 1–3 learning checkpoints are complete on this branch. CPU LibTorch is integrated, and a small linear model trains, evaluates, and saves/reloads its parameters. Phase 4 grocery classification is next; no grocery model or webcam pipeline exists yet. The diagrams below describe the intended design. See [Phase 3 results](phase-3-results.md).
 
 - [x] Phase 1 — C++ engineering setup and testing
-- [ ] Phase 2 — ML foundations and library decision
-- [ ] Phase 3 — Learn the selected library in C++
+- [x] Phase 2 — ML foundations and library decision
+- [x] Phase 3 — Learn the selected library in C++
 - [ ] Phase 4 — Baseline grocery classifier
 - [ ] Phase 5 — CNNs and image classification
 - [ ] Phase 6 — Dataset engineering and reproducibility
@@ -19,7 +19,7 @@ Status recorded September 6, 2026. Phase 1 is complete; Phase 2 is next. The ML 
 
 **Career fair: October 1, 2026.** Target a working Phase 1–8 MVP by September 25, with essential Phase 10 documentation, recording, and release verification finished by September 30. Phase 9 is planned after the fair. Additional polish can continue afterward; future work is not marked in progress until started.
 
-The library-focused [roadmap](roadmap.md) takes precedence over the earlier handwritten Matrix/backpropagation plan. [Schedule and milestones](project-plan.md) · [Architecture and timeline](architecture.md) · [Issues](https://github.com/supernachos57/Live-Vision/issues) · [Milestones](https://github.com/supernachos57/Live-Vision/milestones) · [Repository Projects](https://github.com/supernachos57/Live-Vision/projects)
+The library-focused [roadmap](roadmap.md) takes precedence over the earlier handwritten Matrix/backpropagation plan. [Schedule and milestones](project-plan.md) · [Architecture and timeline](architecture.md) · [Issues](https://github.com/supernachos57/Live-Vision/issues) · [Milestones](https://github.com/supernachos57/Live-Vision/milestones) · [Repository Projects](https://github.com/supernachos57/Live-Vision/projects)
 
 ## Intended architecture
 
