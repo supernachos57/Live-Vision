@@ -1,81 +1,45 @@
-# Planned architecture and timeline
+# Architecture and implementation status
 
-Status: September 6, 2026. Only Phase 1 setup/testing is complete. All runtime components below are planned, not existing code.
+Updated September 23, 2026. The implemented application is a CPU still-image grocery classifier in `src/main.cpp`. Phases 1–4 checkpoints are complete; CNNs and live capture are future work.
 
-## System and data flow
-
-```mermaid
-flowchart TD
-    webcam["WebcamSource"] --> source["FrameSource<br/>getFrame()"]
-    fallback["Image or recording"] --> source
-    iphone["Future iPhone source"] -.-> source
-    source --> frame["Captured frame"]
-    frame --> prep["OpenCV preprocessing<br/>Resize and normalize"]
-    prep --> model["Library-based classifier<br/>ML library TBD"]
-    checkpoint["Saved checkpoint"] --> model
-    model --> pred["Class and model score"]
-    pred --> overlay["Live overlay"]
-    frame --> overlay
-    frame -.-> detprep["Phase 9<br/>Detector preprocessing"]
-    detprep -.-> ort["ONNX Runtime<br/>Pretrained detector"]
-    ort -.-> post["Boxes, labels, scores"]
-    post -.-> detview["Detection comparison"]
-    checkpoint -.-> export["Optional ONNX export"]
-    export -.-> ortclass["Classifier comparison<br/>Output and latency"]
-    prep -.-> ortclass
-```
-
-Solid edges describe the intended MVP. Dashed edges describe optional/future paths. FrameSource isolates capture from inference. Its planned getFrame() operation should represent either a frame or an explicit failure/end-of-input condition; decide the exact C++ signature in Phase 8.
-
-WebcamSource is the first live adapter. A still-image or recorded adapter provides repeatable testing and a venue fallback. A possible iPhone source shares the interface but is outside the MVP commitment.
-
-Keep the raw frame for overlays. Document the classifier's crop, input size, color order, value range, tensor layout, and label mapping. Use the same preprocessing contract for training and inference. Detector preprocessing is separate because a pretrained model may require different inputs. Postprocessing may include box decoding and suppression if required by that model.
-
-The developer owns the C++ application, library-based model definition, training loop orchestration, evaluation, and integration. The ML library owns tensor storage/operations, layer implementations, autograd, and optimizer machinery. No handwritten Matrix or NN engine is planned.
-
-## Training and saved-model handoff
+## Implemented data flow
 
 ```mermaid
 flowchart TD
-    data["Images and labels<br/>Source records"] --> split["Split manifests<br/>Train / validation / test"]
-    split --> train["Training preprocessing<br/>Batches"]
-    train --> loop["C++ training loop<br/>Library APIs"]
-    loop --> ckpt["Checkpoint<br/>Config and label map"]
-    split --> val["Validation<br/>Select model"]
-    ckpt --> val
-    val --> chosen["Selected model"]
-    chosen --> test["Held-out test<br/>Metrics and errors"]
-    chosen --> app["Phase 8<br/>Inference application"]
+    lists["GroceryStoreDataset lists"] --> records["readImageRecords<br/>Filter and map labels"]
+    records --> train["128 training records"]
+    records --> val["16 validation records"]
+    records --> test["125 test records<br/>Counted only"]
+    train --> prep["loadImageTensor<br/>64x64 RGB float32 CHW"]
+    prep --> batch["Stack and flatten<br/>N x 12288"]
+    batch --> linear["LibTorch Linear<br/>12288 to 3"]
+    linear --> learn["Cross-entropy and SGD<br/>20 epochs, batches of 16"]
+    learn --> saved["saved-model.pt"]
+    val --> eval["Same preprocessing<br/>Loss, accuracy, mistakes"]
+    learn --> eval
+    saved --> reload["Reload and score parity"]
+    saved --> predict["predict command<br/>Same model and preprocessing"]
+    image["User image path"] --> predict
+    predict --> label["avocado / banana / lemon"]
 ```
 
-Validation guides selection; the held-out test set does not guide tuning. Learn gradient concepts with worked examples and the library's automatic differentiation, not a custom differentiation engine.
+`ImageRecord` contains an image path and int64 label. `GroceryClassifier` registers one Linear layer. `loadImageTensor` owns the returned tensor pixels through cloning; `readImageRecords` retains separate split collections. These functions and the orchestration remain together in main.cpp for the learning exercise.
 
-## Roadmap timeline
+The no-argument branch trains a new model, evaluates validation data, overwrites the checkpoint, verifies reload parity, and then runs the historical scalar exercise. The `predict <image-path>` branch loads the saved state and returns before training. Prediction exceptions produce an error and nonzero exit. Paths currently assume execution from the repository root for dataset lists and the checkpoint.
 
-```mermaid
-flowchart TD
-    p1["Phase 1 - DONE<br/>Setup and testing"] --> p2["Phase 2 - Next<br/>Foundations and library<br/>Sep 6-9"]
-    p2 --> p3["Phase 3<br/>C++ library exercise<br/>Sep 9-10"]
-    p3 --> p4["Phase 4<br/>Grocery baseline<br/>Sep 11-15"]
-    p4 --> p5["Phase 5<br/>CNN experiments<br/>Sep 16-18"]
-    p4 --> p6["Phase 6<br/>Dataset engineering<br/>Sep 16-20"]
-    p5 --> p7["Phase 7<br/>Model selection<br/>Sep 20-21"]
-    p6 --> p7
-    p7 --> p8["Phase 8<br/>Live camera MVP<br/>Sep 22-25"]
-    p1 -.-> p10["Phase 10 - Parallel<br/>Docs and presentation<br/>Sep 6-30"]
-    p8 --> release["Release ready<br/>Sep 30"]
-    p10 --> release
-    release --> fair["OCT 1 CAREER FAIR<br/>Phases 1-8 MVP cutoff"]
-    fair --> p9["Phase 9 - Stretch<br/>ONNX comparison<br/>Oct 2-15 tentative"]
-    fair -.-> polish["Additional polish<br/>Review Oct 31"]
-    classDef completed fill:#dcfce7,stroke:#166534,color:#14532d
-    classDef deadline fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-width:3px
-    class p1 completed
-    class fair deadline
-```
+The checkpoint contains registered model state. Architecture dimensions, preprocessing, class names, and configuration are currently supplied in C++ and documented in [Phase 4 results](phase-4-results.md); they are not packaged as checkpoint metadata. No optimizer-resume path exists.
 
-All dates are 2026 planning targets. The vertical timeline keeps labels readable on narrow pages. Phase 1 is confirmed complete; its historical duration is not shown. Phase 2 is next but is not marked active before work starts. Phase 6 quality checks begin during Phase 4; its named window formalizes them. Phase 10 overlaps the learning work rather than depending on Phase 9.
+## Planned extensions
 
-Phase 8's internal target is September 25. **October 1 is the hard Phase 1–8 MVP cutoff**, leaving time for release preparation. Phase 9's October 15 date is tentative. October 31 is a review date for additional polish, not another phase or a required completion claim.
+- Phase 5: replace/compare the linear model with a small CNN.
+- Phase 6: validate dataset quality, related captures, split overlap, preprocessing contracts, and reproducibility.
+- Phase 7: stronger metrics and final model selection, using validation for decisions and held-out testing afterward.
+- Phase 8: camera capture, preprocessing, inference display, graceful shutdown, timing, and fallback input. A FrameSource-style interface is a planned design, not implemented code.
+- Phase 9: optional ONNX inference/interchange and a separate pretrained detection comparison.
+- Phase 10: demo reliability, presentation, recording, and release preparation.
 
-See [project plan](project-plan.md) for milestone definitions, exit criteria, and progress rules. Keep these dates synchronized when revising the plan.
+The developer owns model definition and pipeline orchestration; LibTorch supplies tensor operations, layers, autograd, and optimizers, while OpenCV supplies image decoding and transformations. The current application classifies an entire image and does not locate objects or reject unknown categories.
+
+## Schedule status
+
+Agreed Phase 4/5/6 targets: September 18/19/20, 2026. Phase 4 implementation was verified September 22 and documented September 23. These targets have passed; no replacement dates are agreed. October 1 remains the career-fair date. See [project plan](project-plan.md) for the historical schedule and explicit revisions.

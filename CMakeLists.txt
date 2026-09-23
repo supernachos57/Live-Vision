@@ -19,10 +19,11 @@ endif()
 FetchContent_MakeAvailable(googletest)
 
 find_package(Torch REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core imgcodecs imgproc)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 add_executable(LiveVision src/main.cpp)
-target_link_libraries(LiveVision PRIVATE "${TORCH_LIBRARIES}")
+target_link_libraries(LiveVision PRIVATE "${TORCH_LIBRARIES}" ${OpenCV_LIBS})
 
 if(MSVC)
     file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")

@@ -4,7 +4,7 @@ Plan date: **September 6, 2026**. Fixed career-fair deadline: **October 1, 2026*
 
 ## Scope and precedence
 
-The [library-focused roadmap](roadmap.md) controls conflicts. Phases 2–6 are library foundations, a C++ learning exercise, baseline classification, CNNs, and dataset engineering. Handwritten Matrix and backpropagation tasks are excluded. The library choice is still open; the prior roadmap's “tomorrow” means the next decision session, not an automatic selection.
+The [library-focused roadmap](roadmap.md) controls conflicts. Phases 2–6 are library foundations, a C++ learning exercise, baseline classification, CNNs, and dataset engineering. Handwritten Matrix and backpropagation tasks are excluded. CPU LibTorch with MSVC x64 has been selected and verified; OpenCV handles image preprocessing. The original roadmap's next-decision language is historical.
 
 Phase 1 setup/testing remains complete. Phase 10's essential career-fair deliverables remain due September 30, consistent with that roadmap. Phase 9 is post-fair stretch work. Additional polish continues after the fair without relabeling all Phase 10 work as deferred.
 
@@ -16,8 +16,8 @@ Create nine open repository milestones, one for each Phase 2–10. Phase 1 is re
 | --- | --- | --- | --- |
 | Phase 2 — ML foundations and library decision | 2026-09-06 | 2026-09-09 | Decision record, verified C++ library integration, and explained tensor example. |
 | Phase 3 — Learn the selected library in C++ | 2026-09-09 | 2026-09-10 | Small training exercise works; saved and reloaded predictions agree. |
-| Phase 4 — Baseline grocery classifier | 2026-09-11 | 2026-09-15 | Small class set, provisional split, end-to-end training and image prediction, baseline metrics. |
-| Phase 5 — CNNs and image classification | 2026-09-16 | 2026-09-18 | Library-defined CNN evaluated against the baseline on the same split. |
+| Phase 4 — Baseline grocery classifier | 2026-09-11 | 2026-09-18 | Small class set, provisional split, end-to-end training and image prediction, baseline metrics. |
+| Phase 5 — CNNs and image classification | 2026-09-16 | 2026-09-19 | Library-defined CNN evaluated against the baseline on the same split. |
 | Phase 6 — Dataset engineering and reproducibility | 2026-09-16 | 2026-09-20 | Documented sources, grouped splits, preprocessing contract, manifests, and leakage checks. |
 | Phase 7 — Train, evaluate, and select the grocery model | 2026-09-20 | 2026-09-21 | Selected checkpoint, held-out results, per-class metrics, and known failures. |
 | Phase 8 — Live camera application and pipeline | 2026-09-22 | 2026-09-25 | Single-item live classification, error handling, latency measurements, and fallback input. |
@@ -80,3 +80,9 @@ Evidence / PR / test or experiment result:
 Blocker or schedule change:
 Next small task:
 ```
+
+## September 23, 2026 status update
+
+Phases 1–4 learning checkpoints are complete. The agreed revised Phase 4/5/6 due dates are September 18/19/20, 2026; their implementation/documentation verification is tracked separately from those targets. Phase 4 implementation was verified September 22 and documentation closed out September 23. See [Phase 4 evidence](phase-4-results.md).
+
+Phase 5 and later learning work remains outstanding. The old planned-start dates and later targets above are historical planning assumptions, not claims of actual progress. No replacement dates have been approved. October 1 remains the career-fair date. This local documentation update does not change GitHub milestones, issues, or project-board status.

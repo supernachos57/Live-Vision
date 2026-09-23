@@ -1,65 +1,88 @@
 # Live-Vision
 
-A learning-focused C++ project to classify grocery items from images and, eventually, a live camera feed. The developer writes the application and training/inference pipeline using an established ML library. The library provides tensors, layers, automatic differentiation, and optimizers.
+A C++ learning project that classifies grocery images using LibTorch and OpenCV. The developer writes the application and training/inference pipeline; the libraries provide image decoding, tensors, layers, automatic differentiation, and optimizers.
 
-## Project Status
+## Current status
 
-Status recorded September 11, 2026. Phases 1–3 learning checkpoints are complete on this branch. CPU LibTorch is integrated, and a small linear model trains, evaluates, and saves/reloads its parameters. Phase 4 grocery classification is next; no grocery model or webcam pipeline exists yet. The diagrams below describe the intended design. See [Phase 3 results](phase-3-results.md).
+Updated September 23, 2026. Phases 1–4 implementation checkpoints are complete. The baseline recognizes **avocado, banana, and lemon** from still images. It can train, evaluate on validation images, save/reload its weights, and predict from a saved model without retraining. There is no CNN or live camera pipeline yet.
 
 - [x] Phase 1 — C++ engineering setup and testing
 - [x] Phase 2 — ML foundations and library decision
-- [x] Phase 3 — Learn the selected library in C++
-- [ ] Phase 4 — Baseline grocery classifier
+- [x] Phase 3 — Library learning exercise
+- [x] Phase 4 — Baseline grocery classifier
 - [ ] Phase 5 — CNNs and image classification
 - [ ] Phase 6 — Dataset engineering and reproducibility
-- [ ] Phase 7 — Train, evaluate, and select the grocery model
-- [ ] Phase 8 — Live camera application and pipeline
-- [ ] Phase 9 — ONNX Runtime production and detection comparison
-- [ ] Phase 10 — Career-fair release and presentation
+- [ ] Phase 7 — Model evaluation and selection
+- [ ] Phase 8 — Live camera application
+- [ ] Phase 9 — ONNX Runtime and detection comparison
+- [ ] Phase 10 — Release and presentation
 
-**Career fair: October 1, 2026.** Target a working Phase 1–8 MVP by September 25, with essential Phase 10 documentation, recording, and release verification finished by September 30. Phase 9 is planned after the fair. Additional polish can continue afterward; future work is not marked in progress until started.
+The saved baseline's observed validation result was **10/16 correct (62.5%), loss 0.748435**, compared with **6/16 (37.5%)** for always predicting banana. These are small validation-set results, not held-out test results or a real-world reliability claim. Training is unseeded, so reruns vary. See [Phase 4 results and limitations](phase-4-results.md).
 
-The library-focused [roadmap](roadmap.md) takes precedence over the earlier handwritten Matrix/backpropagation plan. [Schedule and milestones](project-plan.md) · [Architecture and timeline](architecture.md) · [Issues](https://github.com/supernachos57/Live-Vision/issues) · [Milestones](https://github.com/supernachos57/Live-Vision/milestones) · [Repository Projects](https://github.com/supernachos57/Live-Vision/projects)
+## Dependencies and toolchain
 
-## Intended architecture
+The verified setup is Windows x64, Visual Studio 2022 C++ tools (MSVC 14.42), C++20, CMake/Ninja, CPU LibTorch (installed headers report 2.14.0), OpenCV 5.0.0, and GoogleTest v1.18.0 fetched by CMake.
 
-```mermaid
-flowchart TD
-    webcam["WebcamSource"] --> source["FrameSource<br/>getFrame()"]
-    fallback["Image or recording"] --> source
-    iphone["Future iPhone source"] -.-> source
-    source --> frame["Captured frame"]
-    frame --> prep["OpenCV preprocessing<br/>Resize and normalize"]
-    prep --> model["Library-based classifier<br/>ML library TBD"]
-    checkpoint["Saved checkpoint"] --> model
-    model --> pred["Class and model score"]
-    pred --> overlay["Live overlay"]
-    frame --> overlay
-    frame -.-> detprep["Phase 9<br/>Detector preprocessing"]
-    detprep -.-> ort["ONNX Runtime<br/>Pretrained detector"]
-    ort -.-> post["Boxes, labels, scores"]
-    post -.-> detview["Detection comparison"]
-    checkpoint -.-> export["Optional ONNX export"]
-    export -.-> ortclass["Classifier comparison<br/>Output and latency"]
-    prep -.-> ortclass
+Use **x64 Native Tools Command Prompt for VS 2022**, not MSYS2 UCRT64 Bash, for this LibTorch/OpenCV build. The earlier UCRT64 setup was the Phase 1 toolchain.
+
+Dependencies are installed separately. The following commands use this machine's paths; change the library paths on another machine. LibTorch and OpenCV must be compatible x64 builds. Do not commit dependency binaries or dataset images.
+
+## Dataset
+
+Clone [GroceryStoreDataset](https://github.com/marcusklasson/GroceryStoreDataset) under `data/GroceryStoreDataset`. The verified local dataset revision is `fc80ba90f803d79d0383df52c5a4ac5de99ff6fc`:
+
+```bat
+git clone https://github.com/marcusklasson/GroceryStoreDataset.git data/GroceryStoreDataset
+git -C data/GroceryStoreDataset checkout fc80ba90f803d79d0383df52c5a4ac5de99ff6fc
 ```
 
-The MVP classifies one prominent grocery item or selected crop, covering a small chosen set of produce and packaged goods. It does not promise multi-object detection. Model scores are not calibrated confidence guarantees. Phase 9 separately explores a pretrained detector and ONNX interchange/inference.
+The application filters the upstream train/validation/test lists separately using broader category IDs 1, 2, and 4. It selects 128 training, 16 validation, and 125 test records. Test records are counted but are not used for training or evaluation. Dataset provenance, preprocessing, and the label map are recorded in [Phase 4 results](phase-4-results.md#data-and-preprocessing).
 
-## Build and test
+## Configure, build, and test
 
-Phase 1 uses C++20, CMake, Ninja, MSYS2 UCRT64/g++, and GoogleTest fetched through CMake. From the repository root in the configured environment:
+Run from the repository root. For the current checkout:
 
-```sh
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
+```bat
+cd /d C:\Users\ryanw\source\programming_projects\Live-Vision
+set "PATH=C:\Users\ryanw\Libraries\opencv\build\x64\vc16\bin;%PATH%"
+cmake -S . -B build-msvc -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=C:/Users/ryanw/Libraries/libtorch -DOpenCV_DIR=C:/Users/ryanw/Libraries/opencv/build
+cmake --build build-msvc --target LiveVision LiveVisionTests
+ctest --test-dir build-msvc --output-on-failure
 ```
 
-The previously reported smoke-test result was 1/1 passed. No new build or ML evaluation is claimed by this documentation update. The future ML dependency may require a deliberate toolchain change, recorded in a decision document.
+The `PATH` command is needed in each new terminal so Windows can locate the OpenCV DLL. CMake copies LibTorch DLLs beside the executable. The OpenCV distribution uses a `vc16` folder even with the verified VS 2022 build; use the directory actually installed on your machine.
 
-## Learning and ownership
+The existing CTest test is a smoke test of the test infrastructure, not a test of classifier quality. The September 23 build and CTest run passed (1/1).
 
-Learn tensor shapes, loss, gradients, training/evaluation, CNNs, and model assessment while using real library APIs. Implement the C++ data pipeline, model configuration, training orchestration, evaluation, FrameSource adapters, and display behavior personally. Reimplementing tensors or a backpropagation framework is outside scope.
+## Train and save
 
-Use small issues and focused pull requests. See the [tracking workflow](docs/project-plan.md#progress-tracking-workflow). Check off a phase only after its exit criteria are verified; this checklist is maintained manually.
+```bat
+build-msvc\LiveVision.exe
+```
+
+With no arguments, the program trains a fresh linear classifier for 20 epochs using batches of 16, SGD at learning rate 0.001, and cross-entropy loss. It reports validation metrics, the majority-class reference, and misclassified image paths. It saves `build-msvc/saved-model.pt`, reloads it into a separate model, and checks score parity with `torch::allclose`.
+
+**Each no-argument run retrains and overwrites that checkpoint.** There is no fixed random seed, optimizer-state resume, or model-selection loop. The Phase 3 scalar exercise still executes afterward; its loss and separate weight/bias files do not describe the grocery classifier. Full label and initial score diagnostics also remain verbose.
+
+## Predict without training
+
+After creating the checkpoint, run from the repository root:
+
+```bat
+build-msvc\LiveVision.exe predict "data/GroceryStoreDataset/dataset/val/Fruit/Banana/Banana_001.jpg"
+```
+
+Use an absolute image path or a path relative to the current working directory, quoting paths containing spaces. The command loads the saved grocery model, uses the shared preprocessing function, prints one grocery name, and exits without training or modifying the checkpoint. The checkpoint location is currently fixed relative to the repository root.
+
+Invalid arguments print usage and return 1. Model/image loading failures in prediction mode print an error and return 1. Successful prediction returns 0. The classifier always chooses one of the three supported categories; it has no unknown-object rejection or localization.
+
+## Project notes
+
+- [Phase 4 results](phase-4-results.md) — experiment settings, measured results, verification, and limitations.
+- [Phase 3 results](phase-3-results.md) — historical scalar learning exercise.
+- [Architecture](architecture.md) — implemented baseline and planned camera pipeline.
+- [Roadmap](roadmap.md) and [project plan](project-plan.md) — learning phases and targets.
+
+The previously agreed Phase 4/5/6 targets were September 18/19/20, 2026. Phase 4 implementation was verified September 22 and documented September 23; later targets have passed and no replacement dates are agreed. The career-fair date remains October 1, 2026. Phase 9 is stretch work.
+
+The learner writes the application code with mentorship. Minor assisted corrections and documentation support are part of that workflow. Later phases focus on CNNs, dataset quality, stronger evaluation, and live camera integration.
