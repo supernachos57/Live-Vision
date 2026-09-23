@@ -13,3 +13,4 @@ out/
 .vscode/
 
 /build-msvc/
+/data/GroceryStoreDataset/

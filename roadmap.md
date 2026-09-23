@@ -1,8 +1,8 @@
 # Live-Vision Roadmap
 
-**Career-fair deadline: October 1, 2026**  
-**Current status: Phase 1 complete; Phases 2–10 planned**  
-**ML-library decision: deferred until the next decision session (Phase 2)**
+**Career-fair deadline: October 1, 2026**
+**Current status (September 23, 2026): Phases 1–4 checkpoints complete; Phases 5–10 remain**
+**Selected library/toolchain: CPU LibTorch with MSVC x64; OpenCV for image preprocessing**
 
 ## Project goal
 
@@ -185,6 +185,14 @@ Document any new library-specific configuration arguments. Add useful tests arou
 
 Keep generated builds, large datasets, model checkpoints, and secrets out of ordinary source commits. Document how to obtain the exact data/model artifacts required to reproduce the results, with versions or hashes where practical.
 
-## Next session
+## Original next-session note (historical)
 
 Choose the ML library together, validate its C++ integration, and begin the Phase 2 foundations exercise. The decision remains open until that session. Phase 1 stays complete, and the October 1, 2026 deadline stays fixed.
+
+## Phase 4 closeout — September 23, 2026
+
+The status above supersedes the original planning language in the phase descriptions. Phases 2 and 3 were completed using CPU LibTorch and MSVC; Phase 4 now provides a verified three-class grocery baseline with separate data lists, RGB image preprocessing, training, validation, checkpoint parity, and prediction-only command-line use. See [Phase 4 results](phase-4-results.md) and the [current build/run instructions](README.md).
+
+The previously agreed conversation targets were Phase 4 September 18, Phase 5 September 19, and Phase 6 September 20, 2026. These replace the older targets for those phases in the original plan. Phase 4 implementation was verified September 22 and documentation completed September 23. Later targets have passed; no new dates have been agreed. Historical UCRT64 commands above describe Phase 1 and are not the current LibTorch build instructions.
+
+Next: Phase 5 CNN learning and comparison, retaining the baseline. Dataset auditing, live camera work, and release preparation are still outstanding. The October 1 career-fair date has not changed.
