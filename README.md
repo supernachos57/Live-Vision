@@ -4,13 +4,13 @@ A C++ learning project that classifies grocery images using LibTorch and OpenCV.
 
 ## Current status
 
-Updated September 23, 2026. Phases 1–4 implementation checkpoints are complete. The baseline recognizes **avocado, banana, and lemon** from still images. It can train, evaluate on validation images, save/reload its weights, and predict from a saved model without retraining. There is no CNN or live camera pipeline yet.
+Updated September 27, 2026. Phases 1–5 checkpoints are complete. The application trains a small CNN to classify **avocado, banana, and lemon**, validates it, saves/reloads its weights, and predicts without retraining. Linear-baseline inference remains available. Live camera capture is not implemented.
 
 - [x] Phase 1 — C++ engineering setup and testing
 - [x] Phase 2 — ML foundations and library decision
 - [x] Phase 3 — Library learning exercise
 - [x] Phase 4 — Baseline grocery classifier
-- [ ] Phase 5 — CNNs and image classification
+- [x] Phase 5 — CNNs and image classification
 - [ ] Phase 6 — Dataset engineering and reproducibility
 - [ ] Phase 7 — Model evaluation and selection
 - [ ] Phase 8 — Live camera application
@@ -18,6 +18,8 @@ Updated September 23, 2026. Phases 1–4 implementation checkpoints are complete
 - [ ] Phase 10 — Release and presentation
 
 The saved baseline's observed validation result was **10/16 correct (62.5%), loss 0.748435**, compared with **6/16 (37.5%)** for always predicting banana. These are small validation-set results, not held-out test results or a real-world reliability claim. Training is unseeded, so reruns vary. See [Phase 4 results and limitations](phase-4-results.md).
+
+The first CNN run achieved **8/16 (50%), validation loss 0.973922**, below the retained linear baseline. Its reload parity and prediction-only path were verified. See [Phase 5 results](phase-5-results.md) for architecture, settings, mistakes, and limitations.
 
 ## Dependencies and toolchain
 
@@ -52,7 +54,7 @@ ctest --test-dir build-msvc --output-on-failure
 
 The `PATH` command is needed in each new terminal so Windows can locate the OpenCV DLL. CMake copies LibTorch DLLs beside the executable. The OpenCV distribution uses a `vc16` folder even with the verified VS 2022 build; use the directory actually installed on your machine.
 
-The existing CTest test is a smoke test of the test infrastructure, not a test of classifier quality. The September 23 build and CTest run passed (1/1).
+The existing CTest test is a smoke test of the test infrastructure, not a test of classifier quality. The September 27 build and CTest run passed (1/1).
 
 ## Train and save
 
@@ -60,15 +62,16 @@ The existing CTest test is a smoke test of the test infrastructure, not a test o
 build-msvc\LiveVision.exe
 ```
 
-With no arguments, the program trains a fresh linear classifier for 20 epochs using batches of 16, SGD at learning rate 0.001, and cross-entropy loss. It reports validation metrics, the majority-class reference, and misclassified image paths. It saves `build-msvc/saved-model.pt`, reloads it into a separate model, and checks score parity with `torch::allclose`.
+With no arguments, the program trains a fresh CNN for 20 epochs using batches of 16, SGD at learning rate 0.001, and cross-entropy loss. It reports validation metrics, the majority-class reference, and misclassified image paths. It saves `build-msvc/saved-cnn.pt`, reloads it into a separate model, and checks score parity with `torch::allclose`.
 
 **Each no-argument run retrains and overwrites that checkpoint.** There is no fixed random seed, optimizer-state resume, or model-selection loop. The Phase 3 scalar exercise still executes afterward; its loss and separate weight/bias files do not describe the grocery classifier. Full label and initial score diagnostics also remain verbose.
 
 ## Predict without training
 
-After creating the checkpoint, run from the repository root:
+Run from the repository root. CNN prediction uses `saved-cnn.pt`; the existing `predict` command uses the retained linear `saved-model.pt`:
 
 ```bat
+build-msvc\LiveVision.exe predict-cnn "data/GroceryStoreDataset/dataset/val/Fruit/Banana/Banana_001.jpg"
 build-msvc\LiveVision.exe predict "data/GroceryStoreDataset/dataset/val/Fruit/Banana/Banana_001.jpg"
 ```
 
@@ -76,13 +79,16 @@ Use an absolute image path or a path relative to the current working directory, 
 
 Invalid arguments print usage and return 1. Model/image loading failures in prediction mode print an error and return 1. Successful prediction returns 0. The classifier always chooses one of the three supported categories; it has no unknown-object rejection or localization.
 
+The first CNN checkpoint predicts lemon for this banana image, matching its validation mistake. `build-msvc\LiveVision.exe cnn-check` inspects shapes and parameter counts using random inputs without training or saving.
+
 ## Project notes
 
+- [Phase 5 results](phase-5-results.md) — CNN architecture, measured comparison, checkpoint and inference verification.
 - [Phase 4 results](phase-4-results.md) — experiment settings, measured results, verification, and limitations.
 - [Phase 3 results](phase-3-results.md) — historical scalar learning exercise.
-- [Architecture](architecture.md) — implemented baseline and planned camera pipeline.
+- [Architecture](architecture.md) — implemented CNN/baseline paths and planned camera pipeline.
 - [Roadmap](roadmap.md) and [project plan](project-plan.md) — learning phases and targets.
 
-The previously agreed Phase 4/5/6 targets were September 18/19/20, 2026. Phase 4 implementation was verified September 22 and documented September 23; later targets have passed and no replacement dates are agreed. The career-fair date remains October 1, 2026. Phase 9 is stretch work.
+The previously agreed Phase 4/5/6 targets were September 18/19/20, 2026. Phase 4 implementation was verified September 22 and documented September 23; Phase 5 closed out September 27. The user now targets Phase 6 completion on September 27 and starting Phase 7 afterward; neither is marked complete. The career-fair date remains October 1, 2026. Phase 9 is stretch work.
 
-The learner writes the application code with mentorship. Minor assisted corrections and documentation support are part of that workflow. Later phases focus on CNNs, dataset quality, stronger evaluation, and live camera integration.
+The learner writes the application code with mentorship. Minor assisted corrections and documentation support are part of that workflow. Next phases focus on dataset quality, reproducibility, stronger evaluation, and live camera integration.

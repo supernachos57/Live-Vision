@@ -42,6 +42,32 @@ struct GroceryClassifier : torch::nn::Module
     }
 };
 
+struct GroceryCNN : torch::nn::Module
+{
+    torch::nn::Conv2d convolution {nullptr};
+    torch::nn::Linear classifier {nullptr};
+    torch::nn::MaxPool2d pooling {nullptr};
+
+    GroceryCNN()
+    {
+        convolution = register_module("convolution", torch::nn::Conv2d(torch::nn::Conv2dOptions(3, 8, 3).stride(1).padding(1)));
+        pooling = register_module("pooling", torch::nn::MaxPool2d(torch::nn::MaxPool2dOptions(2).stride(2)));
+        classifier = register_module("classifier", torch::nn::Linear(8 * 32 * 32, 3)); // Assuming 3 classes and input image size 64x64
+
+    }
+
+    torch::Tensor forward(torch::Tensor inputs)
+    {
+        torch::Tensor features = convolution->forward(inputs);
+        torch::Tensor activated = torch::relu(features); // Apply ReLU activation
+        torch::Tensor pooled = pooling->forward(activated);
+        torch::Tensor flattened = pooled.flatten(1);
+
+        return classifier->forward(flattened);
+    }
+
+};
+
 std::vector<ImageRecord> readImageRecords(const std::string& listPath)
 {
 
@@ -100,6 +126,90 @@ torch::Tensor loadImageTensor(const std::string& fullImagePath)
 
 int main(int argc, char* argv[])
 {
+    if (argc == 2 && std::string(argv[1]) == "cnn-check")
+    {
+        torch::NoGradGuard noGrad;
+
+        torch::Tensor inputs = torch::rand({2, 3, 64, 64});
+
+        torch::nn::Conv2d convolution(
+            torch::nn::Conv2dOptions(3, 8, 3).stride(1).padding(1));
+
+        torch::nn::MaxPool2d pooling(
+            torch::nn::MaxPool2dOptions(2).stride(2));
+
+        torch::Tensor features = convolution->forward(inputs);
+        torch::Tensor activated = torch::relu(features);
+        torch::Tensor pooled = pooling->forward(activated);
+
+        std::cout << "Input: " << inputs.sizes() << std::endl;
+        std::cout << "After convolution: " << features.sizes() << std::endl;
+        std::cout << "After ReLU: " << activated.sizes() << std::endl;
+        std::cout << "After pooling: " << pooled.sizes() << std::endl;
+
+        std::cout << "Convolution weights: "
+                  << convolution->weight.sizes() << std::endl;
+        std::cout << "Convolution biases: "
+                  << convolution->bias.sizes() << std::endl;
+
+
+        GroceryCNN cnn;
+        cnn.eval();
+        torch::Tensor scores = cnn.forward(inputs);
+
+        std::cout <<"CNN output shape: " <<scores.sizes() << std::endl;
+        std::cout << "CNN class scores:\n" << scores << std::endl;
+
+        int64_t parameterCount = 0;
+
+        for (const auto& parameter : cnn.named_parameters())
+        {
+            std::cout <<"Parameter: " <<parameter.key() << " | Size: " << parameter.value().sizes() << std::endl;
+            parameterCount += parameter.value().numel();
+        }
+        std::cout << "Total number of CNN parameters: " << parameterCount << std::endl;
+
+        return 0;
+    }
+
+    if (argc > 1 && std::string(argv[1]) == "predict-cnn")
+    {
+        if (argc != 3)
+        {
+            std::cerr << "Usage: LiveVision.exe predict-cnn <image-path>\n";
+            return 1;
+        }
+
+        try
+        {
+            GroceryCNN predictionModel;
+
+            torch::serialize::InputArchive archive;
+            archive.load_from("build-msvc/saved-cnn.pt");
+            predictionModel.load(archive);
+            predictionModel.eval();
+
+            torch::NoGradGuard noGrad;
+
+            torch::Tensor imageTensor = loadImageTensor(argv[2]);
+            torch::Tensor predictionInput = imageTensor.unsqueeze(0);
+            torch::Tensor predictionScores = predictionModel.forward(predictionInput);
+
+            int64_t predictedLabel = predictionScores.argmax(1).item<int64_t>();
+
+            const std::vector<std::string> classNames{
+                "avocado", "banana", "lemon"};
+
+            std::cout << "CNN predicted grocery: " << classNames.at(predictedLabel) << std::endl;
+            return 0;
+        }
+        catch (const std::exception& error)
+        {
+            std::cerr << "CNN prediction failed: " << error.what() << std::endl;
+            return 1;
+        }
+    }
+
     if (argc > 1)
     {
         if (argc != 3 || std::string(argv[1]) != "predict")
@@ -178,16 +288,10 @@ int main(int argc, char* argv[])
     std::cout << "Label batch shape: " << labelBatch.sizes() << std::endl;
     std:: cout <<"Batch labels: " <<labelBatch << std::endl;
 
-    torch::Tensor flattenedBatch = imageBatch.flatten(1);
+   GroceryCNN model;
 
-    const int64_t inputFeatures = 3 * 64 * 64;
-    const int64_t classCount = 3;
+   torch::Tensor scores = model.forward(imageBatch);
 
-    GroceryClassifier model(inputFeatures, classCount);
-
-    torch::Tensor scores = model.forward(flattenedBatch);
-
-    std::cout << "Flattened batch shape: " << flattenedBatch.sizes() << std::endl;
     std::cout << "Output shape: " << scores.sizes() << std::endl;
     std::cout << "Class scores:\n" << scores << std::endl;
 
@@ -200,7 +304,7 @@ int main(int argc, char* argv[])
     torch::optim::SGD groceryOptimizer(model.parameters(), torch::optim::SGDOptions(0.001));
     const int64_t epochCount = 20;
     const int64_t batchSize = 16;
-    const int64_t exampleCount = flattenedBatch.size(0);
+    const int64_t exampleCount = imageBatch.size(0);
 
     for (int64_t epoch = 0; epoch < epochCount; ++epoch)
     {
@@ -212,7 +316,7 @@ int main(int argc, char* argv[])
         {
             torch::Tensor batchIndices = shuffledIndices.slice(0, start, start + batchSize);
 
-            torch::Tensor batchInputs = flattenedBatch.index_select(0, batchIndices);
+            torch::Tensor batchInputs = imageBatch.index_select(0, batchIndices);
             torch::Tensor batchTargets = labelBatch.index_select(0, batchIndices);
 
             groceryOptimizer.zero_grad();
@@ -244,7 +348,7 @@ int main(int argc, char* argv[])
             validationLabels.push_back(record.label);
         }
 
-        torch::Tensor validationInputs = torch::stack(validationImages).flatten(1);
+        torch::Tensor validationInputs = torch::stack(validationImages);
 
         torch::Tensor validationTargets = torch::tensor(validationLabels, torch::TensorOptions().dtype(torch::kInt64));
 
@@ -281,22 +385,22 @@ int main(int argc, char* argv[])
         }
     }
 
-    torch::serialize::OutputArchive modelArchive;
-    model.save(modelArchive);
-    modelArchive.save_to("build-msvc/saved-model.pt");
+        torch::serialize::OutputArchive modelArchive;
+        model.save(modelArchive);
+        modelArchive.save_to("build-msvc/saved-cnn.pt");
 
-    GroceryClassifier loadedModel(inputFeatures, classCount);
+        GroceryCNN loadedModel;
 
-    torch::serialize::InputArchive loadedArchive;
-    loadedArchive.load_from("build-msvc/saved-model.pt");
-    loadedModel.load(loadedArchive);
-    loadedModel.eval();
+        torch::serialize::InputArchive loadedArchive;
+        loadedArchive.load_from("build-msvc/saved-cnn.pt");
+        loadedModel.load(loadedArchive);
+        loadedModel.eval();
 
     {
         torch::NoGradGuard noGrad;
 
-        torch::Tensor originalScores = model.forward(flattenedBatch);
-        torch::Tensor reloadedScores = loadedModel.forward(flattenedBatch);
+        torch::Tensor originalScores = model.forward(imageBatch);
+        torch::Tensor reloadedScores = loadedModel.forward(imageBatch);
 
         bool scoresMatch = torch::allclose(originalScores, reloadedScores);
 

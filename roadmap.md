@@ -1,7 +1,7 @@
 # Live-Vision Roadmap
 
 **Career-fair deadline: October 1, 2026**
-**Current status (September 23, 2026): Phases 1–4 checkpoints complete; Phases 5–10 remain**
+**Current status (September 27, 2026): Phases 1–5 checkpoints complete; Phases 6–10 remain**
 **Selected library/toolchain: CPU LibTorch with MSVC x64; OpenCV for image preprocessing**
 
 ## Project goal
@@ -196,3 +196,11 @@ The status above supersedes the original planning language in the phase descript
 The previously agreed conversation targets were Phase 4 September 18, Phase 5 September 19, and Phase 6 September 20, 2026. These replace the older targets for those phases in the original plan. Phase 4 implementation was verified September 22 and documentation completed September 23. Later targets have passed; no new dates have been agreed. Historical UCRT64 commands above describe Phase 1 and are not the current LibTorch build instructions.
 
 Next: Phase 5 CNN learning and comparison, retaining the baseline. Dataset auditing, live camera work, and release preparation are still outstanding. The October 1 career-fair date has not changed.
+
+## Phase 5 closeout and revised plan — September 27, 2026
+
+Phases 1–5 checkpoints are complete. The small CNN trained on the same provisional split, achieved 8/16 validation accuracy versus the retained linear baseline's 10/16, passed checkpoint score parity, and predicted from saved state without training. See [Phase 5 results](phase-5-results.md). CNN training now saves saved-cnn.pt; saved-model.pt remains the linear baseline.
+
+The user explicitly revised the Phase 6 completion target to September 27, 2026 (today in that session), with Phase 7 to start afterward. This replaces Phase 6's historical September 20 target. No Phase 7 completion deadline was agreed. Phase 6 dataset auditing/reproducibility and Phase 7 evaluation/selection remain outstanding; planned dates are not completion evidence. The career fair remains October 1, 2026.
+
+This update supersedes older current-status and no-replacement-date statements below/above. Historical schedules are retained as history. No GitHub milestones, issues, or project-board status were changed.
