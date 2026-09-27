@@ -2,6 +2,8 @@
 
 Plan date: **September 6, 2026**. Fixed career-fair deadline: **October 1, 2026**. This is an ambitious learning schedule; dates are targets and progress requires evidence.
 
+**Current update (September 27): Phases 1–5 complete. Phase 6 is targeted for September 27, with Phase 7 starting afterward. See the latest closeout entry; older schedule tables are historical.**
+
 ## Scope and precedence
 
 The [library-focused roadmap](roadmap.md) controls conflicts. Phases 2–6 are library foundations, a C++ learning exercise, baseline classification, CNNs, and dataset engineering. Handwritten Matrix and backpropagation tasks are excluded. CPU LibTorch with MSVC x64 has been selected and verified; OpenCV handles image preprocessing. The original roadmap's next-decision language is historical.
@@ -86,3 +88,11 @@ Next small task:
 Phases 1–4 learning checkpoints are complete. The agreed revised Phase 4/5/6 due dates are September 18/19/20, 2026; their implementation/documentation verification is tracked separately from those targets. Phase 4 implementation was verified September 22 and documentation closed out September 23. See [Phase 4 evidence](phase-4-results.md).
 
 Phase 5 and later learning work remains outstanding. The old planned-start dates and later targets above are historical planning assumptions, not claims of actual progress. No replacement dates have been approved. October 1 remains the career-fair date. This local documentation update does not change GitHub milestones, issues, or project-board status.
+
+## Phase 5 closeout and revised plan — September 27, 2026
+
+Phases 1–5 checkpoints are complete. The small CNN trained on the same provisional split, achieved 8/16 validation accuracy versus the retained linear baseline's 10/16, passed checkpoint score parity, and predicted from saved state without training. See [Phase 5 results](phase-5-results.md). CNN training now saves saved-cnn.pt; saved-model.pt remains the linear baseline.
+
+The user explicitly revised the Phase 6 completion target to September 27, 2026 (today in that session), with Phase 7 to start afterward. This replaces Phase 6's historical September 20 target. No Phase 7 completion deadline was agreed. Phase 6 dataset auditing/reproducibility and Phase 7 evaluation/selection remain outstanding; planned dates are not completion evidence. The career fair remains October 1, 2026.
+
+This update supersedes older current-status and no-replacement-date statements below/above. Historical schedules are retained as history. No GitHub milestones, issues, or project-board status were changed.
