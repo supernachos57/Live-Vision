@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "dataset_revision": "fc80ba90f803d79d0383df52c5a4ac5de99ff6fc",
+  "selection": "upstream coarse IDs 1,2,4; preserve source order and split membership",
+  "split_decision": "retain upstream membership for current experiment; session independence not certified",
+  "manifests": {
+    "train": "0cf6c4a275550d85e140388a8a85b3de0379253b94f46c339b48b122036dfbe6",
+    "val": "4382408d1db5990fbcc433119699ee098a78a09f14cd257b658fc70533654711",
+    "test": "731aee788aa66edb540887e222b75f537c8eb06ced4292354454548096e5bd18"
+  },
+  "inventory_sha256": "a3506e4b845e3e41e065008f653905ac73015ef9bb3bf737245140f969b2d021",
+  "source_main_cpp_sha256": "25fcbc95d5a7afd36f35e0f44c1b8267f46e959590b1a787fc36c4f9843ea554",
+  "checkpoint_sha256": {
+    "saved-model.pt": "29d1e87946f643e6f07a30c396ce1ca8611df6f67a60c1b691341ad8dcc89a1e",
+    "saved-cnn.pt": "359ca86d198e084d4897c7758f581f6ac7a75fc801ecc77298bbcf94146dd789",
+    "saved-cnn-phase6.pt": "0202862964d2d1177ebc4fe4df2343887b661422993e74163133fb3c624eacc5"
+  },
+  "scope_acceptance": {
+    "date": "2026-09-29",
+    "authorized_by": "user",
+    "phase6_status": "complete under revised bounded-audit scope",
+    "limitation": "capture-session independence unverified",
+    "membership_changed": false
+  }
+}

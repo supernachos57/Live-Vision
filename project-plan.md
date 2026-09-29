@@ -2,7 +2,7 @@
 
 Plan date: **September 6, 2026**. Fixed career-fair deadline: **October 1, 2026**. This is an ambitious learning schedule; dates are targets and progress requires evidence.
 
-**Current update (September 27): Phases 1–5 complete. Phase 6 is targeted for September 27, with Phase 7 starting afterward. See the latest closeout entry; older schedule tables are historical.**
+**Current update (September 29): Phases 1–6 checkpoints complete. The user accepted the bounded audit and unchanged upstream splits on September 29, with session independence explicitly unverified. Initial Phase 7 reporting is implemented. Older schedule tables are historical.**
 
 ## Scope and precedence
 
@@ -96,3 +96,11 @@ Phases 1–5 checkpoints are complete. The small CNN trained on the same provisi
 The user explicitly revised the Phase 6 completion target to September 27, 2026 (today in that session), with Phase 7 to start afterward. This replaces Phase 6's historical September 20 target. No Phase 7 completion deadline was agreed. Phase 6 dataset auditing/reproducibility and Phase 7 evaluation/selection remain outstanding; planned dates are not completion evidence. The career fair remains October 1, 2026.
 
 This update supersedes older current-status and no-replacement-date statements below/above. Historical schedules are retained as history. No GitHub milestones, issues, or project-board status were changed.
+
+## September 29, 2026 — Phase 6 audit and reproducibility evidence
+
+This entry supersedes older current-status text. Dataset/preprocessing commands and 12 fixture cases have been verified. Seeded runs repeat printed logs; checkpoint metadata is generated; selected manifests and image fingerprints are recorded. Initial Phase 7 confusion-matrix and per-class reporting remain in the branch, but selection and held-out evaluation have not occurred.
+
+The bounded audit found no repeated paths, byte-identical files, or identical decoded RGB images among 269 selected records. All test thumbnails and 36 cross-split similarity candidates were reviewed for data quality only. Upstream split membership is retained. Capture-session independence remains unverified because session identifiers are absent; visual groups are recorded as inferences. The user subsequently accepted this limitation on September 29 and authorized Phase 6 completion under the bounded-audit scope. This explicitly revises the original stronger grouped-split criterion; session independence is not claimed. See [Phase 6 results](phase-6-results.md) and [dataset audit](docs/dataset.md).
+
+The September 27 Phase 6 target has passed; no replacement date or Phase 7 completion deadline is invented. The career-fair date remains October 1, 2026. No GitHub milestone or project board was changed.

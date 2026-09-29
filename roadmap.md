@@ -1,7 +1,7 @@
 # Live-Vision Roadmap
 
 **Career-fair deadline: October 1, 2026**
-**Current status (September 27, 2026): Phases 1–5 checkpoints complete; Phases 6–10 remain**
+**Current status (September 29, 2026): Phases 1–6 checkpoints complete under the accepted bounded-audit scope; initial Phase 7 reporting implemented, selection/test evaluation outstanding.**
 **Selected library/toolchain: CPU LibTorch with MSVC x64; OpenCV for image preprocessing**
 
 ## Project goal
@@ -77,6 +77,8 @@ Compare the CNN with Phase 4 using the same provisional split and evaluation pro
 **Deliverable / exit check:** a working CNN experiment with recorded results and an explanation of its behavior. An improvement is measured, not assumed.
 
 ### Phase 6 — Dataset engineering and reproducibility
+
+**Completed September 29, 2026 under an explicit scope revision:** the user accepted unchanged upstream splits with the completed bounded audit and documented unverified session independence. This supersedes the stronger grouped-split completion requirement below; no certification of independent captures is claimed. See [Phase 6 results](phase-6-results.md).
 
 Refine the initial data into a documented dataset. Inspect labels, corrupt images, duplicate or near-duplicate images, class counts, and background shortcuts. Record dataset sources, usage terms, and any redistribution restrictions before distributing data.
 
@@ -204,3 +206,11 @@ Phases 1–5 checkpoints are complete. The small CNN trained on the same provisi
 The user explicitly revised the Phase 6 completion target to September 27, 2026 (today in that session), with Phase 7 to start afterward. This replaces Phase 6's historical September 20 target. No Phase 7 completion deadline was agreed. Phase 6 dataset auditing/reproducibility and Phase 7 evaluation/selection remain outstanding; planned dates are not completion evidence. The career fair remains October 1, 2026.
 
 This update supersedes older current-status and no-replacement-date statements below/above. Historical schedules are retained as history. No GitHub milestones, issues, or project-board status were changed.
+
+## September 29, 2026 — Phase 6 audit and reproducibility evidence
+
+This entry supersedes older current-status text. Dataset/preprocessing commands and 12 fixture cases have been verified. Seeded runs repeat printed logs; checkpoint metadata is generated; selected manifests and image fingerprints are recorded. Initial Phase 7 confusion-matrix and per-class reporting remain in the branch, but selection and held-out evaluation have not occurred.
+
+The bounded audit found no repeated paths, byte-identical files, or identical decoded RGB images among 269 selected records. All test thumbnails and 36 cross-split similarity candidates were reviewed for data quality only. Upstream split membership is retained. Capture-session independence remains unverified because session identifiers are absent; visual groups are recorded as inferences. The user subsequently accepted this limitation on September 29 and authorized Phase 6 completion under the bounded-audit scope. This explicitly revises the original stronger grouped-split criterion; session independence is not claimed. See [Phase 6 results](phase-6-results.md) and [dataset audit](docs/dataset.md).
+
+The September 27 Phase 6 target has passed; no replacement date or Phase 7 completion deadline is invented. The career-fair date remains October 1, 2026. No GitHub milestone or project board was changed.

@@ -4,20 +4,20 @@ A C++ learning project that classifies grocery images using LibTorch and OpenCV.
 
 ## Current status
 
-Updated September 27, 2026. Phases 1–5 checkpoints are complete. The application trains a small CNN to classify **avocado, banana, and lemon**, validates it, saves/reloads its weights, and predicts without retraining. Linear-baseline inference remains available. Live camera capture is not implemented.
+Updated September 29, 2026. Phases 1–6 learning/engineering checkpoints are complete. On September 29 the user accepted the bounded dataset audit with unchanged upstream splits and explicitly unverified capture-session independence. Phase 7 reporting is implemented but selection/test evaluation remain outstanding. The application trains a small CNN to classify **avocado, banana, and lemon**, validates it, saves/reloads its weights, and predicts without retraining. Linear-baseline inference remains available. Live camera capture is not implemented.
 
 - [x] Phase 1 — C++ engineering setup and testing
 - [x] Phase 2 — ML foundations and library decision
 - [x] Phase 3 — Library learning exercise
 - [x] Phase 4 — Baseline grocery classifier
 - [x] Phase 5 — CNNs and image classification
-- [ ] Phase 6 — Dataset engineering and reproducibility
+- [x] Phase 6 — Dataset engineering and reproducibility
 - [ ] Phase 7 — Model evaluation and selection
 - [ ] Phase 8 — Live camera application
 - [ ] Phase 9 — ONNX Runtime and detection comparison
 - [ ] Phase 10 — Release and presentation
 
-The saved baseline's observed validation result was **10/16 correct (62.5%), loss 0.748435**, compared with **6/16 (37.5%)** for always predicting banana. These are small validation-set results, not held-out test results or a real-world reliability claim. Training is unseeded, so reruns vary. See [Phase 4 results and limitations](phase-4-results.md).
+The saved baseline's observed validation result was **10/16 correct (62.5%), loss 0.748435**, compared with **6/16 (37.5%)** for always predicting banana. These are small validation-set results, not held-out test results or a real-world reliability claim. That historical baseline training was unseeded; current CNN training uses seed 42. See [Phase 4 results and limitations](phase-4-results.md).
 
 The first CNN run achieved **8/16 (50%), validation loss 0.973922**, below the retained linear baseline. Its reload parity and prediction-only path were verified. See [Phase 5 results](phase-5-results.md) for architecture, settings, mistakes, and limitations.
 
@@ -38,7 +38,7 @@ git clone https://github.com/marcusklasson/GroceryStoreDataset.git data/GroceryS
 git -C data/GroceryStoreDataset checkout fc80ba90f803d79d0383df52c5a4ac5de99ff6fc
 ```
 
-The application filters the upstream train/validation/test lists separately using broader category IDs 1, 2, and 4. It selects 128 training, 16 validation, and 125 test records. Test records are counted but are not used for training or evaluation. Dataset provenance, preprocessing, and the label map are recorded in [Phase 4 results](phase-4-results.md#data-and-preprocessing).
+The application filters the upstream train/validation/test lists separately using broader category IDs 1, 2, and 4. It selects 128 training, 16 validation, and 125 test records. Test files have been inspected for integrity and possible overlap, but have not been used for model training, tuning, or classifier evaluation. Current manifests, fingerprints, provenance, preprocessing and audit limitations are recorded in [the dataset audit](docs/dataset.md).
 
 ## Configure, build, and test
 
@@ -56,15 +56,25 @@ The `PATH` command is needed in each new terminal so Windows can locate the Open
 
 The existing CTest test is a smoke test of the test infrastructure, not a test of classifier quality. The September 27 build and CTest run passed (1/1).
 
+## Dataset and preprocessing checks
+
+```bat
+build-msvc\LiveVision.exe preprocessing-check
+build-msvc\LiveVision.exe dataset-check
+build-msvc\LiveVision.exe dataset-check-list docs/manifests/train.txt docs/manifests/val.txt docs/manifests/test.txt
+```
+
+These commands exit before training. The preprocessing command writes a synthetic PNG in build-msvc. Supplied manifests contain paths relative to the dataset root. The dataset check reports 269 unique selected paths. See [Phase 6 evidence](phase-6-results.md).
+
 ## Train and save
 
 ```bat
-build-msvc\LiveVision.exe
+build-msvc\LiveVision.exe train
 ```
 
-With no arguments, the program trains a fresh CNN for 20 epochs using batches of 16, SGD at learning rate 0.001, and cross-entropy loss. It reports validation metrics, the majority-class reference, and misclassified image paths. It saves `build-msvc/saved-cnn.pt`, reloads it into a separate model, and checks score parity with `torch::allclose`.
+Training is explicit; no arguments print usage and return 1. The CNN trains for 20 epochs with seed 42, one CPU computation thread, batches of 16, SGD learning rate 0.001 and cross-entropy. Each run overwrites `build-msvc/saved-cnn-phase6.pt`, reloads it to check score parity, and writes `saved-cnn-phase6.pt.metadata.txt`. Current validation is 9/16 (56.25%), loss 1.00202. Two fresh runs produced identical printed logs on this setup; this is not a cross-platform guarantee.
 
-**Each no-argument run retrains and overwrites that checkpoint.** There is no fixed random seed, optimizer-state resume, or model-selection loop. The Phase 3 scalar exercise still executes afterward; its loss and separate weight/bias files do not describe the grocery classifier. Full label and initial score diagnostics also remain verbose.
+The Phase 3 scalar exercise still runs afterward with its separate outputs/files. There is no optimizer resume or best-checkpoint selection. Confusion-matrix and per-class reporting are present as initial Phase 7 work. Existing prediction commands still use the older retained checkpoints, not the Phase 6 file.
 
 ## Predict without training
 
@@ -83,12 +93,13 @@ The first CNN checkpoint predicts lemon for this banana image, matching its vali
 
 ## Project notes
 
+- [Phase 6 results](phase-6-results.md) — dataset audit, reproducibility, metadata and remaining grouped-split limitation.
 - [Phase 5 results](phase-5-results.md) — CNN architecture, measured comparison, checkpoint and inference verification.
 - [Phase 4 results](phase-4-results.md) — experiment settings, measured results, verification, and limitations.
 - [Phase 3 results](phase-3-results.md) — historical scalar learning exercise.
 - [Architecture](architecture.md) — implemented CNN/baseline paths and planned camera pipeline.
 - [Roadmap](roadmap.md) and [project plan](project-plan.md) — learning phases and targets.
 
-The previously agreed Phase 4/5/6 targets were September 18/19/20, 2026. Phase 4 implementation was verified September 22 and documented September 23; Phase 5 closed out September 27. The user now targets Phase 6 completion on September 27 and starting Phase 7 afterward; neither is marked complete. The career-fair date remains October 1, 2026. Phase 9 is stretch work.
+The previously agreed Phase 4/5/6 targets were September 18/19/20, 2026. Phase 4 implementation was verified September 22 and documented September 23; Phase 5 closed out September 27. The recorded Phase 6 target was September 27 and has passed. Phase 6 was completed September 29 under the accepted audit scope; Phase 7 remains open. See Phase 6 results for evidence and limitations. The career-fair date remains October 1, 2026. Phase 9 is stretch work.
 
 The learner writes the application code with mentorship. Minor assisted corrections and documentation support are part of that workflow. Next phases focus on dataset quality, reproducibility, stronger evaluation, and live camera integration.
