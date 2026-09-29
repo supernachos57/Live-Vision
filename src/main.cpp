@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <vector>
+#include <unordered_map>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
@@ -68,6 +69,22 @@ struct GroceryCNN : torch::nn::Module
 
 };
 
+int64_t parseCategoryId(const std::string& text)
+{
+    std::istringstream input(text);
+    int64_t value = 0;
+
+    if (!(input >> value ))
+        throw std::runtime_error("Invalid category ID: " + text);
+
+    input >> std::ws;
+
+    if (!input.eof() || value < 0)
+        throw std::runtime_error("Invalid category ID: " + text);
+
+    return value;
+}
+
 std::vector<ImageRecord> readImageRecords(const std::string& listPath)
 {
 
@@ -91,14 +108,33 @@ std::vector<ImageRecord> readImageRecords(const std::string& listPath)
                 throw std::runtime_error("Failed to parse image record line: " + line);
             }
 
-            int64_t broaderCategory = std::stoll(broaderCategoryText);
-            int64_t label = mapCategory(broaderCategory);
+            if (imagePath.empty())
+                throw std::runtime_error("Empty image path in: " + listPath);
 
-            if (label != -1)
-            {
-                ImageRecord record{imagePath, label};
+                int64_t specificCategory = parseCategoryId(specificCategoryText);
+                int64_t broaderCategory = parseCategoryId(broaderCategoryText);
+                int64_t label = mapCategory(broaderCategory);
+
+                const bool isSelectedSpecific = specificCategory == 5 || specificCategory == 6 || specificCategory == 8;
+
+                if (label == -1)
+                {
+                    if (isSelectedSpecific)
+                    {
+                        throw std::runtime_error("Selected fine category has wrong coarse category: " + line);
+                    }
+
+                    continue;
+                }
+
+                const std::vector<int64_t> expectedSpecificIds{5, 6, 8};
+
+                if (specificCategory != expectedSpecificIds.at(label))
+                {
+                    throw std::runtime_error("Fine/coarse category mismatch: " + line);
+                }
+                ImageRecord record {imagePath, label};
                 records.push_back(record);
-            }
         }
     return records;
 }
@@ -123,9 +159,215 @@ torch::Tensor loadImageTensor(const std::string& fullImagePath)
     return imageTensor;
 }
 
+void checkPreprocessing()
+{
+    torch::NoGradGuard noGrad;
+
+    const std::string fixturePath =
+        "build-msvc/preprocessing-check.png";
+
+    // OpenCV uses BGR: blue=0, green=128, red=255.
+    cv::Mat fixture(7, 11, CV_8UC3, cv::Scalar(0, 128, 255));
+
+    if (!cv::imwrite(fixturePath, fixture))
+        throw std::runtime_error("Failed to write preprocessing fixture.");
+
+    torch::Tensor image = loadImageTensor(fixturePath);
+
+    if (image.dim() != 3 ||
+        image.size(0) != 3 ||
+        image.size(1) != 64 ||
+        image.size(2) != 64)
+    {
+        throw std::runtime_error("Preprocessing shape check failed.");
+    }
+
+    if (image.scalar_type() != torch::kFloat32 ||
+        !image.is_contiguous())
+    {
+        throw std::runtime_error("Preprocessing dtype/layout check failed.");
+    }
+
+    const std::vector<float> expectedValues{
+        1.0f, 128.0f / 255.0f, 0.0f};
+
+    for (int64_t channel = 0; channel < 3; ++channel)
+    {
+        torch::Tensor expectedChannel = torch::full_like(
+            image[channel], expectedValues.at(channel));
+
+        if (!torch::allclose(
+                image[channel], expectedChannel, 1e-5, 1e-6))
+        {
+            throw std::runtime_error(
+                "Color/scaling check failed for channel " +
+                std::to_string(channel));
+        }
+    }
+
+    torch::Tensor original = image.clone();
+
+    fixture.setTo(cv::Scalar(0, 0, 0));
+
+    if (!cv::imwrite(fixturePath, fixture))
+        throw std::runtime_error("Failed to write black fixture.");
+
+    torch::Tensor secondImage = loadImageTensor(fixturePath);
+
+    if (!torch::equal(secondImage, torch::zeros_like(secondImage)))
+        throw std::runtime_error("Black-image check failed.");
+
+    secondImage.fill_(1.0f);
+
+    if (!torch::equal(image, original))
+        throw std::runtime_error("Loaded images unexpectedly share pixels.");
+
+    std::cout
+        << "Preprocessing checks passed: shape, float32, contiguous, "
+        << "RGB order, scaling, and independent loaded tensors.\n";
+}
+
+void checkDatasetSplit(const std::string& splitName, std::unordered_map<std::string, std::string>& seenPaths, const std::string& manifestPath = "")
+{
+    const std::string datasetRoot = "data/GroceryStoreDataset/dataset/";
+    const std::vector<std::string> classNames {"avocado", "banana", "lemon"};
+
+    std::string listPath = manifestPath;
+
+    if (listPath.empty())
+        listPath = datasetRoot + splitName + ".txt";
+
+    const std::vector<ImageRecord> records = readImageRecords(listPath);
+
+    if (records.empty())
+        throw std::runtime_error("No selected records in split: " + splitName);
+
+    std::vector<int64_t> counts(3,0);
+
+    for (const ImageRecord& record : records)
+    {
+        if (record.label < 0 || record.label >= static_cast<int64_t>(classNames.size()))
+        {
+            throw std::runtime_error("Invalid model label: " + record.path);
+        }
+
+        const auto insertion = seenPaths.emplace(record.path, splitName);
+
+        if(!insertion.second)
+        {
+            throw std::runtime_error("Repeated image path: " + record.path + " | first split: " + insertion.first->second + " | repeated in: " + splitName);
+        }
+
+        torch::Tensor image = loadImageTensor(datasetRoot + record.path);
+
+        if (image.dim() != 3 || image.size(0) != 3 || image.size(1) != 64 || image.size(2) != 64)
+        {
+            throw std::runtime_error("Unexpected image shape: " + record.path);
+        }
+
+        if (image.scalar_type() != torch::kFloat32 || !image.is_contiguous())
+        {
+            throw std::runtime_error("Unexpected image dtype or layout: " + record.path);
+        }
+
+        if (!torch::isfinite(image).all().item<bool>() || image.min().item<float>() < 0.0f || image.max().item<float>() > 1.0f)
+        {
+            throw std::runtime_error("Invalid pixel values: " + record.path);
+        }
+        ++counts.at(record.label);
+    }
+
+    std::cout << splitName << ": " <<records.size() << " selected images checked\n";
+
+    for (size_t label = 0; label < classNames.size(); ++label)
+    {
+        std::cout << " " << classNames.at(label) << " (label " << label << "): " << counts.at(label) << std::endl;
+
+    }
+
+}
 
 int main(int argc, char* argv[])
 {
+    if (argc > 1 && std::string(argv[1]) == "preprocessing-check")
+    {
+        if (argc != 2)
+        {
+            std::cerr << "Usage: LiveVision.exe preprocessing-check\n";
+            return 1;
+        }
+
+        try
+        {
+            checkPreprocessing();
+            return 0;
+        }
+        catch (const std::exception& error)
+        {
+            std::cerr << "Preprocessing check failed: "
+                      << error.what() << '\n';
+            return 1;
+        }
+    }
+
+    if (argc > 1 && std::string(argv[1]) == "dataset-check-list")
+    {
+        if (argc < 3)
+        {
+            std::cerr <<"Usage: LiveVision.exe dataset-check-list " << "<manifest-path> [more-manifest-paths...]\n";
+            return 1;
+        }
+
+        try
+        {
+            std::unordered_map<std::string, std::string> seenPaths;
+
+            for (int argument = 2; argument < argc; ++argument)
+            {
+                const std::string manifestPath = argv[argument];
+
+                checkDatasetSplit(manifestPath, seenPaths, manifestPath);
+            }
+
+            std::cout << "Supplied manifest checks passed.\n";
+            std::cout << "Unique listed paths: " << seenPaths.size() << std::endl;
+            return 0;
+        }
+        catch (const std::exception& error)
+        {
+            std::cerr << "Manifest check failed: " <<error.what() << std::endl;
+            return 1;
+        }
+    }
+
+    if (argc > 1 && std::string(argv[1]) == "dataset-check")
+    {
+        if (argc != 2)
+        {
+            std::cerr << "Usage: LiveVision.exe dataset-check\n";
+            return 1;
+        }
+
+        try
+        {
+
+            std::unordered_map<std::string, std::string> seenPaths;
+
+            checkDatasetSplit("train", seenPaths);
+            checkDatasetSplit("val", seenPaths);
+            checkDatasetSplit("test", seenPaths);
+
+            std::cout << "Dataset image checks passed." << std::endl;
+            std::cout << "Unique listed paths: " << seenPaths.size() << std::endl;
+            return 0;
+        }
+        catch (const std::exception& error)
+        {
+            std::cerr << "Dataset check failed: " << error.what() << std::endl;
+            return 1;
+        }
+    }
+
     if (argc == 2 && std::string(argv[1]) == "cnn-check")
     {
         torch::NoGradGuard noGrad;
@@ -210,9 +452,9 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (argc > 1)
+    if (argc > 1 && std::string(argv[1]) == "predict")
     {
-        if (argc != 3 || std::string(argv[1]) != "predict")
+        if (argc != 3 )
         {
             std::cerr << "Usage: LiveVision.exe predict <image-path>\n";
             return 1;
@@ -248,6 +490,30 @@ int main(int argc, char* argv[])
         }
     }
 
+    if (argc != 2 || std::string(argv[1]) != "train")
+    {
+        std::cerr
+            << "Usage:\n"
+            << "  LiveVision.exe train\n"
+            << "  LiveVision.exe dataset-check\n"
+            << "  LiveVision.exe dataset-check-list <manifest> [more...]\n"
+            << "  LiveVision.exe cnn-check\n"
+            << "  LiveVision.exe predict <image-path>\n"
+            << "  LiveVision.exe predict-cnn <image-path>\n";
+        return 1;
+    }
+
+    const int64_t trainingSeed = 42;
+    const int cpuThreads = 1;
+    const std::string trainingCheckpoint = "build-msvc/saved-cnn-phase6.pt";
+
+    torch::manual_seed(trainingSeed);
+    torch::set_num_threads(cpuThreads);
+
+    std::cout << "Training seed: " << trainingSeed << std::endl;
+    std::cout << "CPU computation threads: " << cpuThreads << std::endl;
+
+    std::cout << "Training checkpoint: " << trainingCheckpoint << std::endl;
 
     std::vector<ImageRecord> trainingRecords = readImageRecords("data/GroceryStoreDataset/dataset/train.txt");
     std::vector<ImageRecord> validationRecords = readImageRecords("data/GroceryStoreDataset/dataset/val.txt");
@@ -301,8 +567,10 @@ int main(int argc, char* argv[])
 
     model.train();
 
-    torch::optim::SGD groceryOptimizer(model.parameters(), torch::optim::SGDOptions(0.001));
+    const double learningRate = 0.001;
+    torch::optim::SGD groceryOptimizer(model.parameters(), torch::optim::SGDOptions(learningRate));
     const int64_t epochCount = 20;
+
     const int64_t batchSize = 16;
     const int64_t exampleCount = imageBatch.size(0);
 
@@ -371,10 +639,14 @@ int main(int argc, char* argv[])
 
         std::cout <<"Always-banana accuracy: " << 100.0 * baselineCorrect / validationCount << "%\n";
 
+        const size_t classCount = classNames.size();
+        std::vector<std::vector<int64_t>> confusion (classCount, std::vector<int64_t>(classCount, 0));
+
         for (int64_t index = 0; index < validationCount; ++index)
         {
             int64_t predicted = predictedLabels[index].item<int64_t>();
             int64_t actual = validationTargets[index].item<int64_t>();
+            ++confusion.at(actual).at(predicted);
             {
                 if (predicted != actual)
                 {
@@ -383,18 +655,73 @@ int main(int argc, char* argv[])
                 }
             }
         }
-    }
 
+        std::cout << "\nValidation confusion matrix\n";
+        std::cout << "Rows=actual, columns=predicted\n";
+        std::cout << "Class order: avocado banana lemon\n";
+
+        for (size_t actual = 0; actual < classCount; ++actual)
+        {
+            std::cout << classNames.at(actual) << ':';
+
+            for (size_t predicted = 0; predicted < classCount; ++predicted)
+                std::cout << ' ' << confusion.at(actual).at(predicted);
+
+            std::cout << '\n';
+        }
+
+        std::cout << "\nValidation per-class metrics\n";
+
+        for (size_t label = 0; label < classCount; ++label)
+        {
+            const int64_t truePositives = confusion.at(label).at(label);
+            int64_t actualCount = 0;
+            int64_t predictedCount = 0;
+
+            for (size_t other = 0; other < classCount; ++other)
+            {
+                actualCount += confusion.at(label).at(other);
+                predictedCount += confusion.at(other).at(label);
+            }
+
+            std::cout << classNames.at(label)
+                      << " | support=" << actualCount;
+
+            if (predictedCount > 0)
+            {
+                std::cout << " | precision="
+                          << 100.0 * truePositives / predictedCount << '%';
+            }
+            else
+            {
+                std::cout << " | precision=N/A (no predictions)";
+            }
+
+            if (actualCount > 0)
+            {
+                std::cout << " | recall="
+                          << 100.0 * truePositives / actualCount << '%';
+            }
+            else
+            {
+                std::cout << " | recall=N/A (no examples)";
+            }
+
+            std::cout << '\n';
+        }
+
+    }
         torch::serialize::OutputArchive modelArchive;
         model.save(modelArchive);
-        modelArchive.save_to("build-msvc/saved-cnn.pt");
+        modelArchive.save_to(trainingCheckpoint);
 
         GroceryCNN loadedModel;
 
         torch::serialize::InputArchive loadedArchive;
-        loadedArchive.load_from("build-msvc/saved-cnn.pt");
+        loadedArchive.load_from(trainingCheckpoint);
         loadedModel.load(loadedArchive);
         loadedModel.eval();
+
 
     {
         torch::NoGradGuard noGrad;
@@ -412,6 +739,67 @@ int main(int argc, char* argv[])
             return 1;
         }
 
+    }
+
+        {
+        const std::string metadataPath = trainingCheckpoint + ".metadata.txt";
+        std::ofstream metadata(metadataPath);
+
+        if (!metadata.is_open())
+        {
+            std::cerr << "Failed to open metadata file: "
+                      << metadataPath << '\n';
+            return 1;
+        }
+
+        metadata
+            << "metadata_version=1\n"
+            << "checkpoint=" << trainingCheckpoint << '\n'
+            << "model=GroceryCNN\n"
+            << "architecture=Conv2d(3,8,3,stride=1,padding=1)"
+            << " -> ReLU -> MaxPool2d(2,stride=2)"
+            << " -> flatten(1) -> Linear(8192,3)\n"
+            << "labels=0:avocado,1:banana,2:lemon\n"
+            << "dataset_coarse_ids=1,2,4\n"
+            << "dataset_fine_ids=5,6,8\n"
+            << "dataset_source=https://github.com/marcusklasson/GroceryStoreDataset\n"
+            << "expected_dataset_revision=fc80ba90f803d79d0383df52c5a4ac5de99ff6fc\n"
+            << "split_policy=upstream; grouping audit incomplete\n"
+            << "train_manifest=data/GroceryStoreDataset/dataset/train.txt\n"
+            << "validation_manifest=data/GroceryStoreDataset/dataset/val.txt\n"
+            << "test_manifest=data/GroceryStoreDataset/dataset/test.txt\n"
+            << "training_count=" << trainingRecords.size() << '\n'
+            << "validation_count=" << validationRecords.size() << '\n'
+            << "test_count=" << testRecords.size() << '\n'
+            << "test_evaluated=false\n"
+            << "resize=64x64; INTER_AREA; direct resize\n"
+            << "color=RGB\n"
+            << "tensor=float32; CHW; contiguous; owned\n"
+            << "scaling=uint8 / 255; range=[0,1]\n"
+            << "augmentation=none\n"
+            << "device=CPU\n"
+            << "seed=" << trainingSeed << '\n'
+            << "cpu_threads=" << cpuThreads << '\n'
+            << "optimizer=SGD\n"
+            << "learning_rate=" << learningRate << '\n'
+            << "momentum=0\n"
+            << "weight_decay=0\n"
+            << "epochs=" << epochCount << '\n'
+            << "batch_size=" << batchSize << '\n'
+            << "loss=cross_entropy\n"
+            << "checkpoint_selection=last_epoch\n"
+            << "reload_allclose=true\n";
+
+        metadata.close();
+
+        if (!metadata)
+        {
+            std::cerr << "Failed to finish writing metadata: "
+                      << metadataPath << '\n';
+            return 1;
+        }
+
+        std::cout << "Saved metadata: " << metadataPath << '\n';
     }
 
     torch::Tensor inputs = torch::tensor({1.0f, 2.0f, 3.0f});

@@ -1,50 +1,34 @@
 # Architecture and implementation status
 
-Updated September 27, 2026. Phases 1–5 checkpoints are complete. The CPU still-image classifier, training, and prediction paths are implemented in src/main.cpp. Camera capture remains future work.
+Updated September 29, 2026. One executable and one repository; application code remains in src/main.cpp. The learner writes application code with mentorship. Camera capture is not implemented.
 
-## Implemented data flow
+## Data and model
 
-```mermaid
-flowchart TD
-    lists[Dataset split lists] --> records[Filter labels: avocado 0, banana 1, lemon 2]
-    records --> train[128 training images]
-    records --> val[16 validation images]
-    records --> test[125 test records: counted only]
-    train --> prep[OpenCV: 64x64 RGB float32 CHW]
-    prep --> batch[Stack: N x 3 x 64 x 64]
-    batch --> cnn[Conv2d → ReLU → pooling → flatten → Linear]
-    cnn --> learn[Cross-entropy and SGD: 20 epochs]
-    learn --> saved[saved-cnn.pt]
-    val --> evaluation[Shared preprocessing and CNN validation]
-    learn --> evaluation
-    saved --> parity[Reload into GroceryCNN and compare scores]
-    saved --> predict[predict-cnn: inference only]
-    baseline[saved-model.pt: preserved linear model] --> legacy[predict: linear inference only]
-```
+Upstream split lists -> strict selected-category records -> OpenCV preprocessing -> [N,3,64,64] tensors -> GroceryCNN -> logits -> cross-entropy/SGD during training, or argmax labels during prediction.
 
-`GroceryCNN` registers Conv2d(3,8,3), stride 1/padding 1; MaxPool2d(2), stride 2; and Linear(8192,3). Forward produces [N,8,64,64] feature maps, applies ReLU, pools to [N,8,32,32], flattens to [N,8192], and returns [N,3] logits. It has 24,803 trainable parameters. ReLU and pooling have no learned parameters.
+GroceryCNN: Conv2d(3,8,3), stride 1/padding 1 -> ReLU -> MaxPool2d(2), stride 2 -> flatten(1) -> Linear(8192,3); 24,803 parameters. The retained linear model is Linear(12288,3). Both prediction paths share loadImageTensor. See [dataset contract](docs/dataset.md).
 
-`GroceryClassifier` preserves the Phase 4 Linear(12288,3) architecture for baseline prediction. Both paths share `loadImageTensor`, which decodes BGR, resizes, converts to RGB, clones pixels for ownership, scales to float32 [0,1], and rearranges to contiguous CHW. Linear inference flattens before forward; CNN inference does not.
-
-## Command behavior
+## Commands
 
 | Command | Behavior |
-| --- | --- |
-| No arguments | Train fresh CNN, validate, overwrite saved-cnn.pt, verify reload parity, run historical scalar exercise |
-| cnn-check | Inspect random-input shapes and CNN parameters; exit before training |
-| predict-cnn image-path | Load saved-cnn.pt into GroceryCNN, preprocess one image, print predicted class, exit |
-| predict image-path | Load preserved saved-model.pt into GroceryClassifier and predict |
+|---|---|
+| No arguments / unknown command | Usage and exit 1; no training |
+| train | Seeded CNN training/validation, save Phase 6 state, reload check, metadata, then historical scalar exercise |
+| preprocessing-check | Known-color/shape/scaling/layout and independent-loaded-tensor checks; writes test PNG |
+| dataset-check | Validate selected upstream splits with a shared path map |
+| dataset-check-list manifests... | Same checks on supplied manifests, including cross-manifest literal-path overlap |
+| cnn-check | Random-input shape/parameter diagnostic; no checkpoint writes |
+| predict-cnn image | Load retained Phase 5 saved-cnn.pt and predict |
+| predict image | Load retained Phase 4 saved-model.pt and predict |
 
-Paths to dataset lists and checkpoints assume execution from the repository root. Image paths may be absolute or relative. Prediction uses evaluation mode and NoGradGuard. Invalid arguments return failure; prediction exceptions are caught. Training error handling remains basic.
+Run from repository root. Data image paths inside manifests are relative to data/GroceryStoreDataset/dataset. Training uses seed 42 before construction/shuffling and one CPU computation thread. Each epoch shuffles indices once; batches take slices. Training and validation remain separate; test records are counted by training but not passed through the model.
 
-The checkpoint contains registered model state. Architecture, labels, and preprocessing remain in code; optimizer state and metadata are not packaged. Reload uses the matching architecture. No resume-training or best-checkpoint selection exists.
+## Artifacts and limitations
 
-## Verification and limitations
+Training writes build-msvc/saved-cnn-phase6.pt plus a descriptive .metadata.txt sidecar. Registered model state is in the checkpoint; architecture/labels/preprocessing must still match source. Sidecar is not automatically consumed, and optimizer state is not saved. Historical checkpoints remain preserved; current predict-cnn does not load the Phase 6 file.
 
-The CNN diagnostic, training/validation, reload parity, and CNN prediction were verified; build and smoke test passed. CNN validation was 8/16, versus the retained linear model's 10/16. See [Phase 5 results](phase-5-results.md) and [Phase 4 results](phase-4-results.md). This is image classification, not object localization or unknown-category rejection. Training is unseeded; test images remain unevaluated.
+Dataset inventory, selected manifests and fingerprints live in docs/manifests. Training still reads upstream lists; snapshots are verified selections of those lists. Audit images are local artifacts, not committed dataset copies. No confirmed cross-split capture match was established by the bounded review, but session independence is not certified.
 
-## Remaining work and schedule
+Known-color checks and 269-image checks pass. Two seeded logs match at printed precision; reload allclose passes. Initial Phase 7 metrics report 9/16 validation accuracy. No held-out classifier testing, selection, unknown-object rejection, camera input or localization exists. The scalar exercise remains after training; training error handling is basic. General usage currently omits preprocessing-check even though the command works and is documented here.
 
-Phase 6 covers dataset quality, split/related-capture auditing, preprocessing contracts, and reproducibility. Phase 7 covers stronger metrics and selection before held-out testing. Phase 8 adds camera input and fallback behavior. Phase 9 remains optional ONNX/detection comparison; Phase 10 covers release reliability and presentation.
-
-On September 27, 2026 the user agreed to target Phase 6 completion that day and begin Phase 7 afterward. Neither phase is complete. The career fair remains October 1. Historical Phase 4/5 targets were September 18/19; Phase 5 closed out September 27.
+See [Phase 6 results](phase-6-results.md) for evidence and the accepted bounded-audit scope and unverified session-independence limitation. Phase 7 reporting remains in place without claiming Phase 7 completion.

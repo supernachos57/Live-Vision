@@ -1,0 +1,16 @@
+val/Fruit/Avocado/Avocado_001.jpg, 5, 1
+val/Fruit/Avocado/Avocado_002.jpg, 5, 1
+val/Fruit/Avocado/Avocado_003.jpg, 5, 1
+val/Fruit/Avocado/Avocado_004.jpg, 5, 1
+val/Fruit/Avocado/Avocado_005.jpg, 5, 1
+val/Fruit/Banana/Banana_001.jpg, 6, 2
+val/Fruit/Banana/Banana_002.jpg, 6, 2
+val/Fruit/Banana/Banana_003.jpg, 6, 2
+val/Fruit/Banana/Banana_004.jpg, 6, 2
+val/Fruit/Banana/Banana_005.jpg, 6, 2
+val/Fruit/Banana/Banana_006.jpg, 6, 2
+val/Fruit/Lemon/Lemon_001.jpg, 8, 4
+val/Fruit/Lemon/Lemon_002.jpg, 8, 4
+val/Fruit/Lemon/Lemon_003.jpg, 8, 4
+val/Fruit/Lemon/Lemon_004.jpg, 8, 4
+val/Fruit/Lemon/Lemon_005.jpg, 8, 4

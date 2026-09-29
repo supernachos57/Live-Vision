@@ -1,0 +1,254 @@
+[
+  {
+    "class_name": "avocado",
+    "left": "train/Fruit/Avocado/Avocado_035.jpg",
+    "right": "val/Fruit/Avocado/Avocado_001.jpg",
+    "mse": 0.06120777130126953,
+    "dhash_distance": 23
+  },
+  {
+    "class_name": "avocado",
+    "left": "train/Fruit/Avocado/Avocado_018.jpg",
+    "right": "val/Fruit/Avocado/Avocado_002.jpg",
+    "mse": 0.06393139809370041,
+    "dhash_distance": 30
+  },
+  {
+    "class_name": "avocado",
+    "left": "train/Fruit/Avocado/Avocado_035.jpg",
+    "right": "val/Fruit/Avocado/Avocado_004.jpg",
+    "mse": 0.0712478756904602,
+    "dhash_distance": 19
+  },
+  {
+    "class_name": "avocado",
+    "left": "train/Fruit/Avocado/Avocado_005.jpg",
+    "right": "val/Fruit/Avocado/Avocado_002.jpg",
+    "mse": 0.08803775161504745,
+    "dhash_distance": 21
+  },
+  {
+    "class_name": "avocado",
+    "left": "train/Fruit/Avocado/Avocado_027.jpg",
+    "right": "test/Fruit/Avocado/Avocado_007.jpg",
+    "mse": 0.0408274307847023,
+    "dhash_distance": 29
+  },
+  {
+    "class_name": "avocado",
+    "left": "train/Fruit/Avocado/Avocado_025.jpg",
+    "right": "test/Fruit/Avocado/Avocado_023.jpg",
+    "mse": 0.040928617119789124,
+    "dhash_distance": 28
+  },
+  {
+    "class_name": "avocado",
+    "left": "train/Fruit/Avocado/Avocado_023.jpg",
+    "right": "test/Fruit/Avocado/Avocado_040.jpg",
+    "mse": 0.06663879007101059,
+    "dhash_distance": 18
+  },
+  {
+    "class_name": "avocado",
+    "left": "train/Fruit/Avocado/Avocado_039.jpg",
+    "right": "test/Fruit/Avocado/Avocado_026.jpg",
+    "mse": 0.07484631985425949,
+    "dhash_distance": 18
+  },
+  {
+    "class_name": "avocado",
+    "left": "val/Fruit/Avocado/Avocado_002.jpg",
+    "right": "test/Fruit/Avocado/Avocado_016.jpg",
+    "mse": 0.06332653015851974,
+    "dhash_distance": 23
+  },
+  {
+    "class_name": "avocado",
+    "left": "val/Fruit/Avocado/Avocado_001.jpg",
+    "right": "test/Fruit/Avocado/Avocado_039.jpg",
+    "mse": 0.06368110328912735,
+    "dhash_distance": 26
+  },
+  {
+    "class_name": "avocado",
+    "left": "val/Fruit/Avocado/Avocado_003.jpg",
+    "right": "test/Fruit/Avocado/Avocado_021.jpg",
+    "mse": 0.08858390897512436,
+    "dhash_distance": 19
+  },
+  {
+    "class_name": "avocado",
+    "left": "val/Fruit/Avocado/Avocado_001.jpg",
+    "right": "test/Fruit/Avocado/Avocado_001.jpg",
+    "mse": 0.08292801678180695,
+    "dhash_distance": 22
+  },
+  {
+    "class_name": "banana",
+    "left": "train/Fruit/Banana/Banana_029.jpg",
+    "right": "val/Fruit/Banana/Banana_004.jpg",
+    "mse": 0.043286412954330444,
+    "dhash_distance": 30
+  },
+  {
+    "class_name": "banana",
+    "left": "train/Fruit/Banana/Banana_029.jpg",
+    "right": "val/Fruit/Banana/Banana_003.jpg",
+    "mse": 0.04493831470608711,
+    "dhash_distance": 37
+  },
+  {
+    "class_name": "banana",
+    "left": "train/Fruit/Banana/Banana_031.jpg",
+    "right": "val/Fruit/Banana/Banana_006.jpg",
+    "mse": 0.06338129192590714,
+    "dhash_distance": 23
+  },
+  {
+    "class_name": "banana",
+    "left": "train/Fruit/Banana/Banana_033.jpg",
+    "right": "val/Fruit/Banana/Banana_003.jpg",
+    "mse": 0.05032341554760933,
+    "dhash_distance": 23
+  },
+  {
+    "class_name": "banana",
+    "left": "train/Fruit/Banana/Banana_003.jpg",
+    "right": "test/Fruit/Banana/Banana_037.jpg",
+    "mse": 0.0330120213329792,
+    "dhash_distance": 25
+  },
+  {
+    "class_name": "banana",
+    "left": "train/Fruit/Banana/Banana_003.jpg",
+    "right": "test/Fruit/Banana/Banana_011.jpg",
+    "mse": 0.03487243875861168,
+    "dhash_distance": 33
+  },
+  {
+    "class_name": "banana",
+    "left": "train/Fruit/Banana/Banana_007.jpg",
+    "right": "test/Fruit/Banana/Banana_035.jpg",
+    "mse": 0.06471651047468185,
+    "dhash_distance": 17
+  },
+  {
+    "class_name": "banana",
+    "left": "train/Fruit/Banana/Banana_033.jpg",
+    "right": "test/Fruit/Banana/Banana_013.jpg",
+    "mse": 0.08879566192626953,
+    "dhash_distance": 18
+  },
+  {
+    "class_name": "banana",
+    "left": "val/Fruit/Banana/Banana_002.jpg",
+    "right": "test/Fruit/Banana/Banana_037.jpg",
+    "mse": 0.03698839619755745,
+    "dhash_distance": 35
+  },
+  {
+    "class_name": "banana",
+    "left": "val/Fruit/Banana/Banana_002.jpg",
+    "right": "test/Fruit/Banana/Banana_019.jpg",
+    "mse": 0.0375882126390934,
+    "dhash_distance": 33
+  },
+  {
+    "class_name": "banana",
+    "left": "val/Fruit/Banana/Banana_003.jpg",
+    "right": "test/Fruit/Banana/Banana_023.jpg",
+    "mse": 0.05015192925930023,
+    "dhash_distance": 22
+  },
+  {
+    "class_name": "banana",
+    "left": "val/Fruit/Banana/Banana_003.jpg",
+    "right": "test/Fruit/Banana/Banana_034.jpg",
+    "mse": 0.060953330248594284,
+    "dhash_distance": 22
+  },
+  {
+    "class_name": "lemon",
+    "left": "train/Fruit/Lemon/Lemon_022.jpg",
+    "right": "val/Fruit/Lemon/Lemon_004.jpg",
+    "mse": 0.04851924255490303,
+    "dhash_distance": 35
+  },
+  {
+    "class_name": "lemon",
+    "left": "train/Fruit/Lemon/Lemon_028.jpg",
+    "right": "val/Fruit/Lemon/Lemon_002.jpg",
+    "mse": 0.05013129487633705,
+    "dhash_distance": 26
+  },
+  {
+    "class_name": "lemon",
+    "left": "train/Fruit/Lemon/Lemon_029.jpg",
+    "right": "val/Fruit/Lemon/Lemon_005.jpg",
+    "mse": 0.08540838956832886,
+    "dhash_distance": 20
+  },
+  {
+    "class_name": "lemon",
+    "left": "train/Fruit/Lemon/Lemon_027.jpg",
+    "right": "val/Fruit/Lemon/Lemon_004.jpg",
+    "mse": 0.061386268585920334,
+    "dhash_distance": 23
+  },
+  {
+    "class_name": "lemon",
+    "left": "train/Fruit/Lemon/Lemon_036.jpg",
+    "right": "test/Fruit/Lemon/Lemon_019.jpg",
+    "mse": 0.0313890166580677,
+    "dhash_distance": 29
+  },
+  {
+    "class_name": "lemon",
+    "left": "train/Fruit/Lemon/Lemon_021.jpg",
+    "right": "test/Fruit/Lemon/Lemon_007.jpg",
+    "mse": 0.03139207512140274,
+    "dhash_distance": 29
+  },
+  {
+    "class_name": "lemon",
+    "left": "train/Fruit/Lemon/Lemon_037.jpg",
+    "right": "test/Fruit/Lemon/Lemon_040.jpg",
+    "mse": 0.05792580917477608,
+    "dhash_distance": 17
+  },
+  {
+    "class_name": "lemon",
+    "left": "train/Fruit/Lemon/Lemon_019.jpg",
+    "right": "test/Fruit/Lemon/Lemon_006.jpg",
+    "mse": 0.04850778356194496,
+    "dhash_distance": 18
+  },
+  {
+    "class_name": "lemon",
+    "left": "val/Fruit/Lemon/Lemon_004.jpg",
+    "right": "test/Fruit/Lemon/Lemon_037.jpg",
+    "mse": 0.04231264069676399,
+    "dhash_distance": 28
+  },
+  {
+    "class_name": "lemon",
+    "left": "val/Fruit/Lemon/Lemon_003.jpg",
+    "right": "test/Fruit/Lemon/Lemon_037.jpg",
+    "mse": 0.04360227286815643,
+    "dhash_distance": 28
+  },
+  {
+    "class_name": "lemon",
+    "left": "val/Fruit/Lemon/Lemon_004.jpg",
+    "right": "test/Fruit/Lemon/Lemon_005.jpg",
+    "mse": 0.053442951291799545,
+    "dhash_distance": 20
+  },
+  {
+    "class_name": "lemon",
+    "left": "val/Fruit/Lemon/Lemon_005.jpg",
+    "right": "test/Fruit/Lemon/Lemon_027.jpg",
+    "mse": 0.06467360258102417,
+    "dhash_distance": 21
+  }
+]

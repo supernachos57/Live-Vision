@@ -1,0 +1,17 @@
+{
+  "selected_counts": {
+    "train": 128,
+    "val": 16,
+    "test": 125
+  },
+  "duplicate_groups": {
+    "file_sha256": [],
+    "rgb_sha256": [],
+    "path": []
+  },
+  "upstream_manifests": {
+    "train": "b6d6a4d25fc2a7604f4bbd4e8010516f3bb643f727fc60ef5fca042edd01294f",
+    "val": "a2a2bdf8ce34196c1a1dd554bd67e780793aab9363dd40d6cf50fe2d168a78b6",
+    "test": "9a464934780665c0024db405571c0dd2d149488a245f476557de7f1c31cf8a93"
+  }
+}
