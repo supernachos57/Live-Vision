@@ -287,8 +287,144 @@ void checkDatasetSplit(const std::string& splitName, std::unordered_map<std::str
 
 }
 
+void evaluateCNN(const std::string& checkpointPath, const std::string& split)
+{
+    const std::string datasetRoot = "data/GroceryStoreDataset/dataset/";
+    const auto evaluationRecords = readImageRecords(datasetRoot + split + ".txt");
+    if (evaluationRecords.empty())
+        throw std::runtime_error("No selected evaluation images.");
+
+    torch::set_num_threads(1);
+    torch::NoGradGuard noGrad;
+    GroceryCNN model;
+    torch::serialize::InputArchive archive;
+    archive.load_from(checkpointPath);
+    model.load(archive);
+    model.eval();
+
+    std::vector<torch::Tensor> images;
+    std::vector<int64_t> labels;
+    for (const auto& record : evaluationRecords)
+    {
+        images.push_back(loadImageTensor(datasetRoot + record.path));
+        labels.push_back(record.label);
+    }
+    torch::Tensor evaluationInputs = torch::stack(images);
+    torch::Tensor evaluationTargets =
+        torch::tensor(labels, torch::TensorOptions().dtype(torch::kInt64));
+
+    std::cout << "Checkpoint: " << checkpointPath << "\nSplit: " << split << '\n';
+        torch::Tensor evaluationScores = model.forward(evaluationInputs);
+        torch::Tensor evaluationLoss = torch::nn::functional::cross_entropy(evaluationScores, evaluationTargets);
+
+        torch::Tensor predictedLabels = evaluationScores.argmax(1);
+        int64_t correctCount = predictedLabels.eq(evaluationTargets).sum().item<int64_t>();
+
+        const int64_t evaluationCount = evaluationTargets.size(0);
+        double accuracy = 100.0 * correctCount / evaluationCount;
+
+        std::cout << "Evaluation loss: " << evaluationLoss.item<float>() << std::endl; std::cout <<"Evaluation accuracy: "
+        <<accuracy << "% ( " << correctCount << "/" << evaluationCount << ")\n";
+
+        const std::vector<std::string> classNames { "avocado", "banana", "lemon"};
+
+        const int64_t majorityLabel = 1; // Banana: most common training class
+        int64_t baselineCorrect = evaluationTargets.eq(majorityLabel).sum().item<int64_t>();
+
+        std::cout <<"Always-banana accuracy: " << 100.0 * baselineCorrect / evaluationCount << "%\n";
+
+        const size_t classCount = classNames.size();
+        std::vector<std::vector<int64_t>> confusion (classCount, std::vector<int64_t>(classCount, 0));
+
+        for (int64_t index = 0; index < evaluationCount; ++index)
+        {
+            int64_t predicted = predictedLabels[index].item<int64_t>();
+            int64_t actual = evaluationTargets[index].item<int64_t>();
+            ++confusion.at(actual).at(predicted);
+            {
+                if (predicted != actual)
+                {
+                    std::cout << "Mistake: " << evaluationRecords.at(index).path << ", Predicted: "
+                    << classNames[predicted] << ", Actual: " << classNames[actual] << std::endl;
+                }
+            }
+        }
+
+        std::cout << "\nEvaluation confusion matrix\n";
+        std::cout << "Rows=actual, columns=predicted\n";
+        std::cout << "Class order: avocado banana lemon\n";
+
+        for (size_t actual = 0; actual < classCount; ++actual)
+        {
+            std::cout << classNames.at(actual) << ':';
+
+            for (size_t predicted = 0; predicted < classCount; ++predicted)
+                std::cout << ' ' << confusion.at(actual).at(predicted);
+
+            std::cout << '\n';
+        }
+
+        std::cout << "\nEvaluation per-class metrics\n";
+
+        for (size_t label = 0; label < classCount; ++label)
+        {
+            const int64_t truePositives = confusion.at(label).at(label);
+            int64_t actualCount = 0;
+            int64_t predictedCount = 0;
+
+            for (size_t other = 0; other < classCount; ++other)
+            {
+                actualCount += confusion.at(label).at(other);
+                predictedCount += confusion.at(other).at(label);
+            }
+
+            std::cout << classNames.at(label)
+                      << " | support=" << actualCount;
+
+            if (predictedCount > 0)
+            {
+                std::cout << " | precision="
+                          << 100.0 * truePositives / predictedCount << '%';
+            }
+            else
+            {
+                std::cout << " | precision=N/A (no predictions)";
+            }
+
+            if (actualCount > 0)
+            {
+                std::cout << " | recall="
+                          << 100.0 * truePositives / actualCount << '%';
+            }
+            else
+            {
+                std::cout << " | recall=N/A (no examples)";
+            }
+
+            std::cout << '\n';
+        }
+}
+
 int main(int argc, char* argv[])
 {
+    if (argc > 1 && std::string(argv[1]) == "evaluate-cnn")
+    {
+        if (argc != 4 || (std::string(argv[3]) != "val" && std::string(argv[3]) != "test"))
+        {
+            std::cerr << "Usage: LiveVision.exe evaluate-cnn <checkpoint-path> <val|test>\n";
+            return 1;
+        }
+        try
+        {
+            evaluateCNN(argv[2], argv[3]);
+            return 0;
+        }
+        catch (const std::exception& error)
+        {
+            std::cerr << "Evaluation failed: " << error.what() << '\n';
+            return 1;
+        }
+    }
     if (argc > 1 && std::string(argv[1]) == "preprocessing-check")
     {
         if (argc != 2)
@@ -495,6 +631,7 @@ int main(int argc, char* argv[])
         std::cerr
             << "Usage:\n"
             << "  LiveVision.exe train\n"
+            << "  LiveVision.exe evaluate-cnn <checkpoint-path> <val|test>\n"
             << "  LiveVision.exe dataset-check\n"
             << "  LiveVision.exe dataset-check-list <manifest> [more...]\n"
             << "  LiveVision.exe cnn-check\n"
@@ -505,7 +642,7 @@ int main(int argc, char* argv[])
 
     const int64_t trainingSeed = 42;
     const int cpuThreads = 1;
-    const std::string trainingCheckpoint = "build-msvc/saved-cnn-phase6.pt";
+    const std::string trainingCheckpoint = "build-msvc/phase7-run-b.pt";
 
     torch::manual_seed(trainingSeed);
     torch::set_num_threads(cpuThreads);
@@ -567,15 +704,37 @@ int main(int argc, char* argv[])
 
     model.train();
 
-    const double learningRate = 0.001;
+    const double learningRate = 0.003;
     torch::optim::SGD groceryOptimizer(model.parameters(), torch::optim::SGDOptions(learningRate));
     const int64_t epochCount = 20;
 
     const int64_t batchSize = 16;
     const int64_t exampleCount = imageBatch.size(0);
 
+    std::vector<torch::Tensor> validationImages;
+        std::vector<int64_t> validationLabels;
+
+        for(const ImageRecord& record : validationRecords)
+        {
+            std::string imagePath = "data/GroceryStoreDataset/dataset/" + record.path;
+
+            validationImages.push_back(loadImageTensor(imagePath));
+            validationLabels.push_back(record.label);
+        }
+
+        torch::Tensor validationInputs = torch::stack(validationImages);
+
+        torch::Tensor validationTargets = torch::tensor(validationLabels, torch::TensorOptions().dtype(torch::kInt64));
+
+    double bestValidationLoss = 0.0;
+    int64_t bestEpoch = -1;
+    torch::Tensor bestValidationScores;
+
     for (int64_t epoch = 0; epoch < epochCount; ++epoch)
     {
+
+        model.train();
+
         torch::Tensor shuffledIndices = torch::randperm(exampleCount, torch::TensorOptions().dtype(torch::kInt64));
 
         double totalLoss = 0.0;
@@ -598,27 +757,60 @@ int main(int argc, char* argv[])
 
             totalLoss += batchLoss.item<double>() * batchInputs.size(0);
         }
-        std::cout << "Epoch: " << epoch << ", Average Loss: " << totalLoss / exampleCount << std::endl;
+
+        model.eval();
+        {
+            torch::NoGradGuard noGrad;
+
+            torch::Tensor validationScores = model.forward(validationInputs);
+            torch::Tensor validationLoss =
+                torch::nn::functional::cross_entropy(
+                    validationScores, validationTargets);
+
+            torch::Tensor predictedLabels = validationScores.argmax(1);
+            int64_t correctCount =
+                predictedLabels.eq(validationTargets).sum().item<int64_t>();
+
+            double validationAccuracy =
+                100.0 * correctCount / validationTargets.size(0);
+
+            double currentValidationLoss = validationLoss.item<double>();
+
+           if (bestEpoch == -1 || currentValidationLoss < bestValidationLoss)
+            {
+                torch::serialize::OutputArchive bestArchive;
+                model.save(bestArchive);
+                bestArchive.save_to(trainingCheckpoint);
+
+                bestValidationLoss = currentValidationLoss;
+                bestEpoch = epoch + 1;
+                bestValidationScores = validationScores.clone();
+
+                std::cout << "Saved best epoch: " << bestEpoch << " | Validation loss: " << bestValidationLoss << '\n';
+            }
+            std::cout
+                << "Epoch: " << (epoch + 1)
+                << " | Training loss: " << totalLoss / exampleCount
+                << " | Validation loss: " << validationLoss.item<double>()
+                << " | Validation accuracy: " << validationAccuracy << "%\n";
+        }
     }
+
+    if (bestEpoch == -1)
+    {
+        std::cerr << "No best checkpoint was saved.\n";
+        return 1;
+    }
+
+    torch::serialize::InputArchive bestArchive;
+    bestArchive.load_from(trainingCheckpoint);
+    model.load(bestArchive);
+
+    std::cout << "Selected epoch: " << bestEpoch << " | Best validation loss: " << bestValidationLoss << '\n';
 
     model.eval();
     {
         torch::NoGradGuard noGrad;
-
-        std::vector<torch::Tensor> validationImages;
-        std::vector<int64_t> validationLabels;
-
-        for(const ImageRecord& record : validationRecords)
-        {
-            std::string imagePath = "data/GroceryStoreDataset/dataset/" + record.path;
-
-            validationImages.push_back(loadImageTensor(imagePath));
-            validationLabels.push_back(record.label);
-        }
-
-        torch::Tensor validationInputs = torch::stack(validationImages);
-
-        torch::Tensor validationTargets = torch::tensor(validationLabels, torch::TensorOptions().dtype(torch::kInt64));
 
         torch::Tensor validationScores = model.forward(validationInputs);
         torch::Tensor validationLoss = torch::nn::functional::cross_entropy(validationScores, validationTargets);
@@ -711,9 +903,7 @@ int main(int argc, char* argv[])
         }
 
     }
-        torch::serialize::OutputArchive modelArchive;
-        model.save(modelArchive);
-        modelArchive.save_to(trainingCheckpoint);
+
 
         GroceryCNN loadedModel;
 
@@ -726,10 +916,10 @@ int main(int argc, char* argv[])
     {
         torch::NoGradGuard noGrad;
 
-        torch::Tensor originalScores = model.forward(imageBatch);
-        torch::Tensor reloadedScores = loadedModel.forward(imageBatch);
+        torch::Tensor reloadedScores = loadedModel.forward(validationInputs);
 
-        bool scoresMatch = torch::allclose(originalScores, reloadedScores);
+        bool scoresMatch =
+        torch::allclose(bestValidationScores, reloadedScores);
 
         std::cout << "Grocery scores match after reload: " << std::boolalpha << scoresMatch << std::endl;
 
@@ -787,7 +977,9 @@ int main(int argc, char* argv[])
             << "epochs=" << epochCount << '\n'
             << "batch_size=" << batchSize << '\n'
             << "loss=cross_entropy\n"
-            << "checkpoint_selection=last_epoch\n"
+            << "checkpoint_selection=lowest_validation_loss\n"
+            << "selected_epoch=" << bestEpoch << '\n'
+            << "best_validation_loss=" << bestValidationLoss << '\n'
             << "reload_allclose=true\n";
 
         metadata.close();
