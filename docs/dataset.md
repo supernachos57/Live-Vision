@@ -36,7 +36,7 @@ Upstream files and generated selected manifests can have different byte hashes b
 
 ## Related-capture review and split decision
 
-All selected training/validation contact sheets were reviewed with the learner, followed by all 125 test thumbnails for integrity/grouping only. No classifier was run on test images and no hyperparameters were chosen from test predictions.
+All selected training/validation contact sheets were reviewed with the learner, followed by all 125 test thumbnails for integrity/grouping only. During the Phase 6 audit, no classifier was run on test images and no hyperparameters were chosen from test predictions.
 
 For each class and each split pairing (train/val, train/test, val/test), a support script ranked all image pairs using resized 32x32 RGB mean squared difference and a 64-bit grayscale difference hash. The top two pairs per heuristic were selected, deduplicated, yielding 36 candidate pairs for visual review. These heuristics nominate candidates only; there is no validated threshold and rotations/crops/re-encodings can be missed. Exact decoded-RGB comparison used Pillow, distinct from the application's OpenCV decoder.
 
@@ -44,7 +44,7 @@ No reviewed candidate established a convincing shared physical capture across sp
 
 Validation has strong within-split related-display candidates: avocado 001–005, banana 001–006 (particularly 001/004/005), and lemon 001–005. These are visual inferences, not authoritative capture-session labels. Candidate groups already remain within validation. Repeated scenes also occur within training and test. Sixteen validation images should not be described as sixteen independent capture conditions.
 
-Decision for the current experiment: retain upstream membership and ordering, keep identified validation candidates together, and record the uncertainty. No reassignment or image deletion is justified by the reviewed evidence. Because splits have not changed, a baseline rerun is not required solely for this audit; controlled comparisons remain Phase 7 work.
+Decision for the current experiment: retain upstream membership and ordering, keep identified validation candidates together, and record the uncertainty. No reassignment or image deletion is justified by the reviewed evidence. Because splits have not changed, a baseline rerun is not required solely for this audit; controlled comparisons were subsequently completed in Phase 7.
 
 On September 29, 2026, the user explicitly accepted this bounded audit and unchanged upstream splits as the Phase 6 completion scope. This supersedes the stronger original requirement for verified capture-group-independent splits. Independence remains unverified and must be stated alongside evaluation results. No photos were moved and no model test scores were used to make this decision. Further camera-condition testing belongs to later phases.
 
@@ -71,3 +71,6 @@ python docs/audit_dataset.py --output build-msvc/dataset-audit
 ```
 
 Review generated candidate sheets manually; the script does not decide capture identity or change splits. Image sheets remain local review artifacts. Never tune against held-out model scores during this audit.
+
+## September 30 evaluation update
+The selected CNN was evaluated on the unchanged test split after validation-based selection: 85/125 correct (68%). Test results did not guide tuning. Earlier audit statements describe Phase 6; session independence remains unverified. See [Phase 7 results](../phase-7-results.md).

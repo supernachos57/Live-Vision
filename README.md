@@ -4,7 +4,7 @@ A C++ learning project that classifies grocery images using LibTorch and OpenCV.
 
 ## Current status
 
-Updated September 29, 2026. Phases 1–6 learning/engineering checkpoints are complete. On September 29 the user accepted the bounded dataset audit with unchanged upstream splits and explicitly unverified capture-session independence. Phase 7 reporting is implemented but selection/test evaluation remain outstanding. The application trains a small CNN to classify **avocado, banana, and lemon**, validates it, saves/reloads its weights, and predicts without retraining. Linear-baseline inference remains available. Live camera capture is not implemented.
+Updated September 30, 2026. Phases 1–7 learning/engineering checkpoints are complete. The selected CNN scored **85/125 (68%) on held-out test images**. Capture-session independence remains unverified under the accepted Phase 6 audit scope. Live camera capture is next; it is not implemented.
 
 - [x] Phase 1 — C++ engineering setup and testing
 - [x] Phase 2 — ML foundations and library decision
@@ -12,7 +12,7 @@ Updated September 29, 2026. Phases 1–6 learning/engineering checkpoints are co
 - [x] Phase 4 — Baseline grocery classifier
 - [x] Phase 5 — CNNs and image classification
 - [x] Phase 6 — Dataset engineering and reproducibility
-- [ ] Phase 7 — Model evaluation and selection
+- [x] Phase 7 — Model evaluation and selection
 - [ ] Phase 8 — Live camera application
 - [ ] Phase 9 — ONNX Runtime and detection comparison
 - [ ] Phase 10 — Release and presentation
@@ -38,7 +38,7 @@ git clone https://github.com/marcusklasson/GroceryStoreDataset.git data/GroceryS
 git -C data/GroceryStoreDataset checkout fc80ba90f803d79d0383df52c5a4ac5de99ff6fc
 ```
 
-The application filters the upstream train/validation/test lists separately using broader category IDs 1, 2, and 4. It selects 128 training, 16 validation, and 125 test records. Test files have been inspected for integrity and possible overlap, but have not been used for model training, tuning, or classifier evaluation. Current manifests, fingerprints, provenance, preprocessing and audit limitations are recorded in [the dataset audit](docs/dataset.md).
+The application filters the upstream train/validation/test lists separately using broader category IDs 1, 2, and 4. It selects 128 training, 16 validation, and 125 test records. Test files were inspected for integrity and possible overlap in Phase 6, then evaluated with the selected CNN in Phase 7 after validation-based selection. Test predictions were not used for tuning. Current manifests, fingerprints, provenance, preprocessing and audit limitations are recorded in [the dataset audit](docs/dataset.md).
 
 ## Configure, build, and test
 
@@ -72,9 +72,22 @@ These commands exit before training. The preprocessing command writes a syntheti
 build-msvc\LiveVision.exe train
 ```
 
-Training is explicit; no arguments print usage and return 1. The CNN trains for 20 epochs with seed 42, one CPU computation thread, batches of 16, SGD learning rate 0.001 and cross-entropy. Each run overwrites `build-msvc/saved-cnn-phase6.pt`, reloads it to check score parity, and writes `saved-cnn-phase6.pt.metadata.txt`. Current validation is 9/16 (56.25%), loss 1.00202. Two fresh runs produced identical printed logs on this setup; this is not a cross-platform guarantee.
+Training is explicit; no arguments print usage and return 1. Current settings are Run B: 20 epochs, seed 42, one CPU computation thread, batch size 16, SGD learning rate 0.003, and cross-entropy. Each epoch performs validation and saves the checkpoint when validation loss improves. The best checkpoint is restored before detailed reporting, and its saved validation scores are checked against a freshly loaded model.
 
-The Phase 3 scalar exercise still runs afterward with its separate outputs/files. There is no optimizer resume or best-checkpoint selection. Confusion-matrix and per-class reporting are present as initial Phase 7 work. Existing prediction commands still use the older retained checkpoints, not the Phase 6 file.
+Training overwrites build-msvc/phase7-run-b.pt and its metadata sidecar. Preserve artifacts before changing experiment settings. Run A used learning rate 0.001 and selected epoch 20 (loss 1.00202). Run B selected epoch 19 (loss 0.792704); both had 9/16 validation accuracy. Architecture, splits, preprocessing, seed and epoch budget were held fixed. Run B won the predefined lowest-validation-loss comparison.
+
+The historical scalar exercise still runs after training. Optimizer state is not saved. Existing single-image prediction commands retain older checkpoints.
+
+## Evaluate a saved CNN
+
+With the documented OpenCV DLL path configured, run from the repository root:
+
+    build-msvc/LiveVision.exe evaluate-cnn build-msvc/phase7-run-b.pt val
+    build-msvc/LiveVision.exe evaluate-cnn build-msvc/phase7-run-b.pt test
+
+Evaluation loads the specified GroceryCNN checkpoint, disables gradient tracking, sets evaluation mode, and reports loss, accuracy, mistakes, confusion matrix, precision and recall. It does not train or write checkpoints. Invalid splits and missing checkpoints return exit code 1.
+
+The selected CNN scored **85/125 (68%)**, test loss **0.68481**, versus **35.2%** for always predicting banana. Banana/lemon confusion accounts for 36 of 40 errors. These are still-image results, not a live-camera reliability claim. The historical linear baseline had better validation results; CNN superiority is not established. See [Phase 7 results](phase-7-results.md). Do not use test scores to tune this same experiment.
 
 ## Predict without training
 
@@ -93,6 +106,8 @@ The first CNN checkpoint predicts lemon for this banana image, matching its vali
 
 ## Project notes
 
+- [Phase 7 results](phase-7-results.md) — controlled comparison, checkpoint selection and held-out results.
+
 - [Phase 6 results](phase-6-results.md) — dataset audit, reproducibility, metadata and remaining grouped-split limitation.
 - [Phase 5 results](phase-5-results.md) — CNN architecture, measured comparison, checkpoint and inference verification.
 - [Phase 4 results](phase-4-results.md) — experiment settings, measured results, verification, and limitations.
@@ -100,6 +115,6 @@ The first CNN checkpoint predicts lemon for this banana image, matching its vali
 - [Architecture](architecture.md) — implemented CNN/baseline paths and planned camera pipeline.
 - [Roadmap](roadmap.md) and [project plan](project-plan.md) — learning phases and targets.
 
-The previously agreed Phase 4/5/6 targets were September 18/19/20, 2026. Phase 4 implementation was verified September 22 and documented September 23; Phase 5 closed out September 27. The recorded Phase 6 target was September 27 and has passed. Phase 6 was completed September 29 under the accepted audit scope; Phase 7 remains open. See Phase 6 results for evidence and limitations. The career-fair date remains October 1, 2026. Phase 9 is stretch work.
+The previously agreed Phase 4/5/6 targets were September 18/19/20, 2026. Phase 4 implementation was verified September 22 and documented September 23; Phase 5 closed out September 27. The recorded Phase 6 target was September 27 and has passed. Phase 6 was completed September 29 under the accepted audit scope; Phase 7 was completed September 30; Git review/merge remains pending. See Phase 6 results for evidence and limitations. The career-fair date remains October 1, 2026. Phase 9 is stretch work.
 
-The learner writes the application code with mentorship. Minor assisted corrections and documentation support are part of that workflow. Next phases focus on dataset quality, reproducibility, stronger evaluation, and live camera integration.
+The learner writes the application code with mentorship. Minor assisted corrections and documentation support are part of that workflow. Phase 7 included assisted code and experiment execution reviewed and accepted by the learner. Next is Phase 8 live camera integration using the selected checkpoint.

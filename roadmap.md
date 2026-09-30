@@ -1,7 +1,7 @@
 # Live-Vision Roadmap
 
 **Career-fair deadline: October 1, 2026**
-**Current status (September 29, 2026): Phases 1–6 checkpoints complete under the accepted bounded-audit scope; initial Phase 7 reporting implemented, selection/test evaluation outstanding.**
+**Current status (September 30, 2026): Phases 1–7 learning/engineering checkpoints complete; Phase 8 is next. Git closeout pending. Older schedules are historical.**
 **Selected library/toolchain: CPU LibTorch with MSVC x64; OpenCV for image preprocessing**
 
 ## Project goal
@@ -214,3 +214,12 @@ This entry supersedes older current-status text. Dataset/preprocessing commands 
 The bounded audit found no repeated paths, byte-identical files, or identical decoded RGB images among 269 selected records. All test thumbnails and 36 cross-split similarity candidates were reviewed for data quality only. Upstream split membership is retained. Capture-session independence remains unverified because session identifiers are absent; visual groups are recorded as inferences. The user subsequently accepted this limitation on September 29 and authorized Phase 6 completion under the bounded-audit scope. This explicitly revises the original stronger grouped-split criterion; session independence is not claimed. See [Phase 6 results](phase-6-results.md) and [dataset audit](docs/dataset.md).
 
 The September 27 Phase 6 target has passed; no replacement date or Phase 7 completion deadline is invented. The career-fair date remains October 1, 2026. No GitHub milestone or project board was changed.
+
+## September 30, 2026 — Phase 7 closeout
+Phases 1–7 learning/engineering checkpoints are complete; the user reviewed and accepted the assisted implementation. Git commit/PR/merge remains pending.
+
+The controlled comparison changed only SGD learning rate from 0.001 (A) to 0.003 (B), keeping seed 42, split, preprocessing, CNN, batch size 16 and 20 epochs fixed. Lowest validation loss selected Run B epoch 19 (0.792704, 9/16 correct). Subsequent held-out testing scored 85/125 (68%), loss 0.68481. Reload parity passed; standalone validation reproduced results and test evaluation left the checkpoint unchanged. See [Phase 7 report](phase-7-results.md).
+
+This selects between two CNN configurations, not proof of superiority over the historical linear baseline. Session independence remains unverified. No test-based tuning occurred. Next is Phase 8 camera capture, matching preprocessing, selected-checkpoint loading, display, fallback/error handling, and performance measurement.
+
+No revised Phase 7 or Phase 8 due date was agreed. The career fair remains October 1, 2026. Older schedules are historical. No GitHub milestone or board fields were changed.
