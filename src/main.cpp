@@ -9,7 +9,9 @@
 #include <unordered_map>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
-
+#include <opencv2/videoio.hpp>
+#include <opencv2/highgui.hpp>
+#include <chrono>
 
 struct ImageRecord
 {
@@ -139,11 +141,11 @@ std::vector<ImageRecord> readImageRecords(const std::string& listPath)
     return records;
 }
 
-torch::Tensor loadImageTensor(const std::string& fullImagePath)
+// Shared contract for decoded still images and camera frames: uint8 BGR -> float32 CHW.
+torch::Tensor frameToTensor(const cv::Mat& image)
 {
-    cv::Mat image = cv::imread(fullImagePath, cv::IMREAD_COLOR);
-    if(image.empty())
-        throw std::runtime_error("Failed to read image: " + fullImagePath);
+    if (image.empty() || image.type() != CV_8UC3)
+        throw std::runtime_error("Expected a nonempty 8-bit, three-channel BGR frame.");
 
     //resize and arrange color channels
     cv::Mat resizedImage;
@@ -159,6 +161,14 @@ torch::Tensor loadImageTensor(const std::string& fullImagePath)
     return imageTensor;
 }
 
+torch::Tensor loadImageTensor(const std::string& fullImagePath)
+{
+    cv::Mat image = cv::imread(fullImagePath, cv::IMREAD_COLOR);
+    if (image.empty())
+        throw std::runtime_error("Failed to read image: " + fullImagePath);
+
+    return frameToTensor(image);
+}
 void checkPreprocessing()
 {
     torch::NoGradGuard noGrad;
@@ -205,6 +215,26 @@ void checkPreprocessing()
         }
     }
 
+    // A cropped camera frame may have gaps between rows (a non-contiguous ROI).
+    cv::Mat padded(9, 15, CV_8UC3, cv::Scalar(0, 128, 255));
+    cv::Mat roi = padded(cv::Rect(2, 1, 11, 7));
+    torch::Tensor frameTensor = frameToTensor(roi);
+    if (!torch::equal(image, frameTensor))
+        throw std::runtime_error("Still-image/frame preprocessing parity failed.");
+
+    padded.setTo(cv::Scalar(0, 0, 0));
+    if (!torch::equal(image, frameTensor))
+        throw std::runtime_error("Frame tensor does not own its pixels.");
+
+    for (const cv::Mat& invalid : std::vector<cv::Mat>{
+             cv::Mat(), cv::Mat(2, 2, CV_8UC1), cv::Mat(2, 2, CV_32FC3)})
+    {
+        bool rejected = false;
+        try { frameToTensor(invalid); }
+        catch (const std::runtime_error&) { rejected = true; }
+        if (!rejected)
+            throw std::runtime_error("Invalid frame was not rejected.");
+    }
     torch::Tensor original = image.clone();
 
     fixture.setTo(cv::Scalar(0, 0, 0));
@@ -224,7 +254,7 @@ void checkPreprocessing()
 
     std::cout
         << "Preprocessing checks passed: shape, float32, contiguous, "
-        << "RGB order, scaling, and independent loaded tensors.\n";
+        << "RGB order, scaling, independent loaded tensors, frame parity, ROI ownership, and invalid-frame rejection.\n";
 }
 
 void checkDatasetSplit(const std::string& splitName, std::unordered_map<std::string, std::string>& seenPaths, const std::string& manifestPath = "")
@@ -407,6 +437,171 @@ void evaluateCNN(const std::string& checkpointPath, const std::string& split)
 
 int main(int argc, char* argv[])
 {
+
+    if (argc > 1 && std::string(argv[1]) == "camera-check")
+    {
+            if (argc > 4)
+            {
+                std::cerr
+                    << "Usage: LiveVision.exe camera-check "
+                    << "[camera-index] [score-threshold: 0..1]\n";
+                return 1;
+            }
+
+            try
+            {
+            int cameraIndex = 0;
+
+            if (argc >= 3)
+            {
+                const std::string argument = argv[2];
+
+                if (argument.empty() ||
+                    argument.find_first_not_of("0123456789") != std::string::npos)
+                {
+                    throw std::runtime_error(
+                        "Camera index must be a nonnegative integer.");
+                }
+
+                cameraIndex = std::stoi(argument);
+            }
+
+            double scoreThreshold = 0.0;
+
+            if (argc == 4)
+            {
+                const std::string argument = argv[3];
+                std::size_t consumed = 0;
+                scoreThreshold = std::stod(argument, &consumed);
+
+                if (consumed != argument.size() ||
+                    !(scoreThreshold >= 0.0 && scoreThreshold <= 1.0))
+                {
+                    throw std::runtime_error(
+                        "Score threshold must be a number from 0 to 1.");
+                }
+            }
+
+            std::cout << "Display score threshold: "
+                      << scoreThreshold * 100.0 << "%\n";
+
+            torch::set_num_threads(1);
+
+            GroceryCNN model;
+            torch::serialize::InputArchive archive;
+            archive.load_from("build-msvc/phase7-run-b.pt");
+            model.load(archive);
+            model.eval();
+
+            torch::NoGradGuard noGrad;
+            const std::vector<std::string> classnames { "avocado", "banana", "lemon"};
+
+            cv::VideoCapture camera(cameraIndex);
+
+
+
+            if (!camera.isOpened())
+                throw std::runtime_error(
+                    "Could not open camera " +
+                    std::to_string(cameraIndex) + ".");
+
+            const std::string windowName = "Live-Vision camera check";
+            cv::namedWindow(windowName, cv::WINDOW_NORMAL);
+
+            cv::Mat frame;
+
+
+            using Clock = std::chrono::steady_clock;
+            using Milliseconds = std::chrono::duration<double, std::milli>;
+
+            int64_t frameCount = 0;
+            double totalInferenceMs = 0.0;
+            double totalLatencyMs = 0.0;
+            const auto runStart = Clock::now();
+
+            while (true)
+            {
+                const auto frameStart = Clock::now();
+
+                if (!camera.read(frame) || frame.empty())
+                    throw std::runtime_error("Could not read a camera frame.");
+
+                torch::Tensor input = frameToTensor(frame).unsqueeze(0);
+
+                const auto inferenceStart = Clock::now();
+                torch::Tensor logits = model.forward(input);
+                const auto inferenceEnd = Clock::now();
+
+                totalInferenceMs +=
+                    Milliseconds(inferenceEnd - inferenceStart).count();
+
+                torch::Tensor scores = torch::softmax(logits, 1);
+
+                const int64_t label = scores.argmax(1).item<int64_t>();
+                const float score = scores[0][label].item<float>();
+
+                std::ostringstream caption;
+                caption.precision(1);
+                caption << std::fixed;
+
+                if (score >= scoreThreshold)
+                    caption << "Prediction: " << classnames.at(label);
+                else
+                    caption << "Uncertain";
+
+                caption << " | Model score: " << score * 100.0f << "%";
+                cv::putText(frame, caption.str(), cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 255), 2);
+
+                 cv::putText(
+                    frame, "Uncalibrated score; no unknown-object rejection",
+                    cv::Point(10, 58),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5,
+                    cv::Scalar(0, 255, 255), 1);
+
+                cv::imshow(windowName, frame);
+
+                const int key = cv::waitKey(1);
+
+                const auto frameEnd = Clock::now();
+                totalLatencyMs +=
+                    Milliseconds(frameEnd - frameStart).count();
+                ++frameCount;
+
+                if (key == 27 || key == 'q' || key == 'Q')
+                    break;
+                if (cv::getWindowProperty(windowName, cv::WND_PROP_VISIBLE) < 1)
+                    break;
+            }
+
+            const double elapsedSeconds =
+                std::chrono::duration<double>(Clock::now() - runStart).count();
+
+            if (frameCount > 0 && elapsedSeconds > 0.0)
+            {
+                std::cout << std::fixed;
+                std::cout.precision(2);
+
+                std::cout
+                    << "Frames: " << frameCount << '\n'
+                    << "Average model inference: "
+                    << totalInferenceMs / frameCount << " ms\n"
+                    << "Average application read-to-display latency: "
+                    << totalLatencyMs / frameCount << " ms\n"
+                    << "Achieved FPS: "
+                    << frameCount / elapsedSeconds << '\n';
+            }
+
+            cv::destroyAllWindows();
+            return 0;
+        }
+        catch (const std::exception& error)
+        {
+            cv::destroyAllWindows();
+            std::cerr << "Camera check failed: " << error.what() << std::endl;
+            return 1;
+        }
+    }
+
     if (argc > 1 && std::string(argv[1]) == "evaluate-cnn")
     {
         if (argc != 4 || (std::string(argv[3]) != "val" && std::string(argv[3]) != "test"))
@@ -562,9 +757,13 @@ int main(int argc, char* argv[])
         {
             GroceryCNN predictionModel;
 
+            const std::string checkpointPath = "build-msvc/phase7-run-b.pt";
+
             torch::serialize::InputArchive archive;
-            archive.load_from("build-msvc/saved-cnn.pt");
+            archive.load_from(checkpointPath);
             predictionModel.load(archive);
+
+            std::cout << "Checkpoint: " << checkpointPath << '\n';
             predictionModel.eval();
 
             torch::NoGradGuard noGrad;
@@ -630,6 +829,8 @@ int main(int argc, char* argv[])
     {
         std::cerr
             << "Usage:\n"
+            << "  LiveVision.exe camera-check [camera-index] [score-threshold: 0..1]\n"
+            << "  LiveVision.exe preprocessing-check\n"
             << "  LiveVision.exe train\n"
             << "  LiveVision.exe evaluate-cnn <checkpoint-path> <val|test>\n"
             << "  LiveVision.exe dataset-check\n"
