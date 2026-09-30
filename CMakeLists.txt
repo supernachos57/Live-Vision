@@ -19,7 +19,7 @@ endif()
 FetchContent_MakeAvailable(googletest)
 
 find_package(Torch REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core imgcodecs imgproc)
+find_package(OpenCV REQUIRED COMPONENTS core imgcodecs imgproc videoio highgui)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 add_executable(LiveVision src/main.cpp)

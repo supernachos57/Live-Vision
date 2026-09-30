@@ -1,7 +1,7 @@
 # Live-Vision Roadmap
 
 **Career-fair deadline: October 1, 2026**
-**Current status (September 30, 2026): Phases 1–7 learning/engineering checkpoints complete; Phase 8 is next. Git closeout pending. Older schedules are historical.**
+**Current status (September 30, 2026): Phases 1–7 learning/engineering checkpoints complete; Phase 8 live demo, fallback, and timing implemented. Phase 8 technical verification complete; Git synchronization and presentation rehearsal pending. Older schedules are historical.**
 **Selected library/toolchain: CPU LibTorch with MSVC x64; OpenCV for image preprocessing**
 
 ## Project goal
@@ -223,3 +223,13 @@ The controlled comparison changed only SGD learning rate from 0.001 (A) to 0.003
 This selects between two CNN configurations, not proof of superiority over the historical linear baseline. Session independence remains unverified. No test-based tuning occurred. Next is Phase 8 camera capture, matching preprocessing, selected-checkpoint loading, display, fallback/error handling, and performance measurement.
 
 No revised Phase 7 or Phase 8 due date was agreed. The career fair remains October 1, 2026. Older schedules are historical. No GitHub milestone or board fields were changed.
+
+## September 30, 2026 — Phase 8 measured demo
+
+EMEET camera index 2 and selected Phase 7 checkpoint are integrated. The user reported a responsive 778-frame run: 0.37 ms mean forward time, 33.70 ms mean application latency, and 29.65 FPS. These are one-run timings, not physical sensor-to-screen latency or accuracy evidence. Selected-model still-image fallback and missing-image handling passed. The optional 0.90 display threshold is unvalidated and does not reject unfamiliar objects reliably. See [Phase 8 evidence and rehearsal](phase-8-results.md).
+
+Remaining: final shutdown/reconnect rehearsal and Git closeout. No revised Phase 8 due date is invented. Career fair: October 1, 2026; protect 20–30 minutes for rehearsal. Phase 9 remains deferred.
+
+
+### Phase 8 final verification — September 30, 2026
+User confirmed camera reconnection and both Escape/window-close shutdown checks passed. Final Release build, preprocessing, selected-checkpoint fallback, invalid-threshold check and CTest (1/1) passed; checkpoint unchanged. Phase 8 technical work is complete. Phase 7 PR #9 is verified merged (8242aa0). Phase 8 Git synchronization remains pending due to access restrictions; preserve time for Phase 10 presentation rehearsal.

@@ -4,7 +4,7 @@ A C++ learning project that classifies grocery images using LibTorch and OpenCV.
 
 ## Current status
 
-Updated September 30, 2026. Phases 1–7 learning/engineering checkpoints are complete. The selected CNN scored **85/125 (68%) on held-out test images**. Capture-session independence remains unverified under the accepted Phase 6 audit scope. Live camera capture is next; it is not implemented.
+Updated September 30, 2026. Phases 1–7 learning/engineering checkpoints are complete. The selected CNN scored **85/125 (68%) on held-out test images**. Capture-session independence remains unverified under the accepted Phase 6 audit scope. Phase 8 now provides live camera classification, a selected-checkpoint still-image fallback, and timing. One user-run demo achieved 29.65 FPS; technical verification is complete; Git synchronization and presentation rehearsal remain. See [Phase 8 run instructions and results](phase-8-results.md).
 
 - [x] Phase 1 — C++ engineering setup and testing
 - [x] Phase 2 — ML foundations and library decision
@@ -13,7 +13,7 @@ Updated September 30, 2026. Phases 1–7 learning/engineering checkpoints are co
 - [x] Phase 5 — CNNs and image classification
 - [x] Phase 6 — Dataset engineering and reproducibility
 - [x] Phase 7 — Model evaluation and selection
-- [ ] Phase 8 — Live camera application
+- [x] Phase 8 — Live camera application (technical checks complete; Git synchronization pending)
 - [ ] Phase 9 — ONNX Runtime and detection comparison
 - [ ] Phase 10 — Release and presentation
 
@@ -76,7 +76,7 @@ Training is explicit; no arguments print usage and return 1. Current settings ar
 
 Training overwrites build-msvc/phase7-run-b.pt and its metadata sidecar. Preserve artifacts before changing experiment settings. Run A used learning rate 0.001 and selected epoch 20 (loss 1.00202). Run B selected epoch 19 (loss 0.792704); both had 9/16 validation accuracy. Architecture, splits, preprocessing, seed and epoch budget were held fixed. Run B won the predefined lowest-validation-loss comparison.
 
-The historical scalar exercise still runs after training. Optimizer state is not saved. Existing single-image prediction commands retain older checkpoints.
+The historical scalar exercise still runs after training. Optimizer state is not saved. predict-cnn now uses the selected Phase 7 checkpoint; predict retains the historical linear checkpoint.
 
 ## Evaluate a saved CNN
 
@@ -89,9 +89,13 @@ Evaluation loads the specified GroceryCNN checkpoint, disables gradient tracking
 
 The selected CNN scored **85/125 (68%)**, test loss **0.68481**, versus **35.2%** for always predicting banana. Banana/lemon confusion accounts for 36 of 40 errors. These are still-image results, not a live-camera reliability claim. The historical linear baseline had better validation results; CNN superiority is not established. See [Phase 7 results](phase-7-results.md). Do not use test scores to tune this same experiment.
 
+## Live camera demo
+
+See [Phase 8 instructions](phase-8-results.md) for camera index selection, the optional display threshold, measured performance, fallback, and failure recovery. The EMEET used index 2 on this machine. Run only one camera process at a time. Scores are uncalibrated; no reliable unknown-object rejection is provided.
+
 ## Predict without training
 
-Run from the repository root. CNN prediction uses `saved-cnn.pt`; the existing `predict` command uses the retained linear `saved-model.pt`:
+Run from the repository root. CNN prediction uses `build-msvc/phase7-run-b.pt`; the existing `predict` command uses the retained linear `saved-model.pt`:
 
 ```bat
 build-msvc\LiveVision.exe predict-cnn "data/GroceryStoreDataset/dataset/val/Fruit/Banana/Banana_001.jpg"
@@ -102,7 +106,7 @@ Use an absolute image path or a path relative to the current working directory, 
 
 Invalid arguments print usage and return 1. Model/image loading failures in prediction mode print an error and return 1. Successful prediction returns 0. The classifier always chooses one of the three supported categories; it has no unknown-object rejection or localization.
 
-The first CNN checkpoint predicts lemon for this banana image, matching its validation mistake. `build-msvc\LiveVision.exe cnn-check` inspects shapes and parameter counts using random inputs without training or saving.
+The historical Phase 5 checkpoint predicted lemon for this banana image; current predict-cnn uses the selected Phase 7 checkpoint. `build-msvc\LiveVision.exe cnn-check` inspects shapes and parameter counts using random inputs without training or saving.
 
 ## Project notes
 
@@ -117,4 +121,8 @@ The first CNN checkpoint predicts lemon for this banana image, matching its vali
 
 The previously agreed Phase 4/5/6 targets were September 18/19/20, 2026. Phase 4 implementation was verified September 22 and documented September 23; Phase 5 closed out September 27. The recorded Phase 6 target was September 27 and has passed. Phase 6 was completed September 29 under the accepted audit scope; Phase 7 was completed September 30; Git review/merge remains pending. See Phase 6 results for evidence and limitations. The career-fair date remains October 1, 2026. Phase 9 is stretch work.
 
-The learner writes the application code with mentorship. Minor assisted corrections and documentation support are part of that workflow. Phase 7 included assisted code and experiment execution reviewed and accepted by the learner. Next is Phase 8 live camera integration using the selected checkpoint.
+The learner writes the application code with mentorship. Minor assisted corrections and documentation support are part of that workflow. Phase 7 included assisted code and experiment execution reviewed and accepted by the learner. Phase 8 live inference, fallback, and measurements are implemented; technical verification is complete; Git synchronization and presentation rehearsal remain.
+
+
+### Phase 8 final verification — September 30, 2026
+User confirmed camera reconnection and both Escape/window-close shutdown checks passed. Final Release build, preprocessing, selected-checkpoint fallback, invalid-threshold check and CTest (1/1) passed; checkpoint unchanged. Phase 8 technical work is complete. Phase 7 PR #9 is verified merged (8242aa0). Phase 8 Git synchronization remains pending due to access restrictions; preserve time for Phase 10 presentation rehearsal.
